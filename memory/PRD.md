@@ -17,15 +17,21 @@ Internal SaaS operations tool for a 10-person corporate training (edtech) team a
 
 ## Implemented (2026-06)
 - Dashboard: 4 metric cards (red clash card), quick actions — `/api/dashboard`.
-- Attendance: Teams export parser (name normalize, duration→minutes, threshold), 3-tier name matching, append to Consolidated/Overall/Login sheets by copying existing cell styles, filename date-segment rename, streamed download + unmatched warnings — `/api/attendance/update`.
-- Programs: card grid, add drawer (+optional schedule Excel parse), edit drawer with inline session table, delete w/ cascade — `/api/programs*`, `/api/sessions*`, `/api/programs/{id}/schedule`.
-- Calendar: 7-col month grid, month nav, 3 simultaneous filters, per-program colors, clash banner/red borders/panel, session side panel — `/api/calendar`, `/api/clashes`, `/api/meta`.
-- SOW: month/year/mentor/program filters, grouped preview w/ subtotals + grand total, styled xlsx export — `/api/sow`, `/api/sow/download`.
-- Seed: 4 programs / 12 sessions / 1 intentional clash on first startup.
-- Tested: 14/14 backend (pytest), 14/14 frontend (Playwright) — all passing.
+- Attendance: Teams parser (normalize, duration→minutes, threshold), computed attentiveness (=duration/max), 3-sheet append with exact style copy, date-segment rename, auto-detect session date, optional program-link auto-saves attendance summary for Health.
+- Programs: card grid, add drawer (+schedule Excel with conflict-resolution), edit drawer with inline session table + live mentor availability, delete cascade.
+- Calendar: month grid, filters, clash detection (banner/red borders/panel), session panel.
+- SOW: filters, grouped preview (S.No + Dates + subtotals + grand total), styled xlsx (S.No, Dates, no subtotals).
+- **Program Health Score**: equal-weight attendance/attentiveness/completion → green/amber/red badge with popover breakdown (program cards + dashboard table) — `/api/programs/{id}/health`.
+- **Mentor Availability**: overlap check blocks session save (409) + live UI indicator + schedule-upload conflict resolution — `/api/availability/check`, `/programs/{id}/schedule` (preview), `/sessions/bulk`.
+- **Role-Based Auth**: JWT httpOnly cookie + bcrypt, roles admin/team_member/viewer, `/login` + `/viewer`, forced admin password change, user mgmt — `/api/auth/*`, `/api/users`.
+- **Audit Log** (admin): every action logged, filterable table + CSV export — `/api/audit`, `/api/audit/export`.
+- **Backup & Export** (admin Settings): ZIP (database.json, programs.json, attendance_records.json, audit_log.csv, sow_records.json, backup_info.txt) + last-backup time — `/api/admin/backup`.
+- Seed: 4 programs / 12 sessions / 1 clash / attendance records for health. Default admin: admin/admin123 (must change on first login).
+- Tested: backend 46/46 pytest, frontend 100% (iterations 1–3) — all passing.
 
 ## Backlog / Next
-- P2: Replace native date input on Attendance with shadcn DatePicker.
-- P2: Migrate FastAPI startup event to lifespan; clear toasts on route change.
-- P2: Split server.py into per-domain routers if it grows.
-- P2: Persist processed attendance trackers (history) — currently process-and-download only.
+- P2: Migrate `@app.on_event('startup')` to FastAPI lifespan.
+- P2: Add login rate-limiting / brute-force protection.
+- P2: Split server.py into per-domain routers.
+- P2: Viewer "shared programs" client-facing summary page + per-viewer program sharing UI.
+- P2: Persist processed attendance trackers (history).
