@@ -1,0 +1,48 @@
+{
+  "summary": "Full backend + frontend test of 5 new features for EdTech Ops Hub. Backend: 46/46 pytest passed (24 regression in test_backend.py + test_corrections.py + 22 new feature tests in test_features.py). Frontend: dashboard health table with 4 color-coded badges, popover opens on click, Programs page shows 4 HealthBadges. Auth flow end-to-end works: /login (admin/admin123) -> redirects to /change-password (form with 3 password inputs) -> after change redirects to / and admin sidebar reveals 'Audit Log' + 'Settings' + Logout. /audit page renders with all 4 filters + export button. /settings has Download Full Backup + Add User dialog with save button. Anonymous users correctly do NOT see Audit/Settings/Logout in sidebar. Engineered by Arya Ghai footer visible.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "startup", "issue": "Still uses deprecated @app.on_event('startup') — should migrate to lifespan context manager (carry-over)."},
+      {"endpoint": "CORS", "issue": "CORS_ORIGINS defaults to '*' with allow_credentials=True if env unset — invalid per CORS spec. Currently env-driven in deployment, but the default should be explicit."},
+      {"endpoint": "/api/programs/{id}/schedule", "issue": "Only accepts .xlsx (openpyxl). CSV/TSV uploads return 400 'File is not a zip file'. Documentation/UI should make .xlsx-only clear."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Dashboard health popover", "issues": ["Popover opens on badge click but does not display the literal words 'Attendance / Attentiveness / Completion' as plain text (probably uses icons or abbreviations). Spec asks for a breakdown of 3 sub-scores; verify labels are visible to users — currently only confirmed by score numbers."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_features.py",
+    "/app/backend/tests/test_backend.py",
+    "/app/backend/tests/test_corrections.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Minor) Verify the dashboard health popover labels the three sub-scores with the words Attendance / Attentiveness / Completion (or at least visible labels).",
+    "(Carry-over) Migrate @app.on_event('startup') to FastAPI lifespan handler.",
+    "(Carry-over) Set explicit CORS origins (current default '*' + allow_credentials=True is invalid)."
+  ],
+  "critical_code_review_comments": [
+    "Health: logic.compute_health correctly equal-weights att/attn/completion; color thresholds green>=75, amber 50-74, red<50 — verified by 22 feature tests + math test.",
+    "Availability: check_availability uses regex-escape on mentor name, case-insensitive match — solid. POST /api/sessions and PUT /api/sessions/{id} both raise 409 on conflict; verified.",
+    "Auth: bcrypt $2b$ hash format verified directly from Mongo. JWT in httpOnly cookie with samesite=lax; cookie cleared on logout. seed_admin only seeds when admin doc absent — fine for first login; password rotation requires manual reset (documented).",
+    "Audit: 401 for anon, 403 for viewer/team_member confirmed via require_role. Filters by user/action/date work. CSV export returns text/csv.",
+    "Backup: ZIP contains all 6 files (database.json, programs.json, attendance_records.json, audit_log.csv, sow_records.json, backup_info.txt). Filename ordinal handled (1st, 2nd, 3rd, 11th-13th, etc). Users excluded password_hash — good.",
+    "User CRUD: admin-only via Depends(require_role('admin')). Refuses to delete the last admin (count check). Username lowercased on store — consistent matching.",
+    "Code smells: server.py is ~750 lines — consider splitting into routers (auth/audit/admin/programs/sessions). No brute-force/rate-limit on /api/auth/login (carry-over recommendation). No SecureFlag on cookie (intentional for HTTP preview)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_features.py"
+  ],
+  "success_rate": {"backend": "100% (46/46 across 3 test files)", "frontend": "100% on all data-testid checks (dashboard health, programs health, login -> change-password, admin sidebar, /audit filters+export, /settings backup+add-user dialog)"},
+  "test_credentials": "admin / admin123 on first login (must_change_password=true). New password set in tests: admin123!new. Reset by deleting users collection.",
+  "seed_data_creation": "Module-scoped autouse fixture in test_features.py resets users + audit_logs and re-seeds admin (bcrypt hash, must_change_password=true) so tests are repeatable. Schedule test uses a per-run unique TEST mentor name to avoid conflict re-runs.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Three pytest files all green: test_backend.py (regression, 14), test_corrections.py (10), test_features.py (22). To rerun cleanly: just `pytest /app/backend/tests/ -v`. test_features.py self-resets the users collection at module scope. For UI re-test, drop users collection first to land on must_change_password=true: cd /app/backend && python -c \"import asyncio; from db import db; asyncio.run(db['users'].delete_many({}))\" && supervisorctl restart backend. Frontend data-testids verified: dashboard-health-table, dashboard-health-<id>, program-health-<id>, login-form, login-username, login-password, login-submit, change-password-form, logout-btn, audit-page, audit-filter-user/action/from/to, audit-export-btn, settings-page, download-backup-btn, add-user-btn, add-user-dialog, user-save-btn.",
+  "rca of the issue": "No bugs to RCA. Three initial test failures were test-side problems: (1) 'Lowes' is seeded as 'Engineering Beyond Code Program' (Lowes client), so name-based lookup needed both keys; (2) /schedule only accepts .xlsx (built with openpyxl in test); (3) bcrypt test needed load_dotenv('/app/backend/.env') for MONGO_URL. Schedule test also needed unique mentor per run for idempotency."
+}

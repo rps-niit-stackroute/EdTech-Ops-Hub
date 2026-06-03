@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import HealthBadge from "@/components/HealthBadge";
 import {
   FolderKanban,
   CalendarRange,
@@ -115,6 +116,39 @@ export default function Dashboard() {
                 );
               })}
             </div>
+          </section>
+
+          <section className="mt-10">
+            <h2 className="mb-4 label-caps">Program Health</h2>
+            <Card className="overflow-hidden rounded-md border-slate-200" data-testid="dashboard-health-table">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs uppercase tracking-wider text-slate-400">
+                      <th className="px-5 py-3">Program</th>
+                      <th className="px-5 py-3">Client</th>
+                      <th className="px-5 py-3 text-right">Sessions</th>
+                      <th className="px-5 py-3 text-right">Health Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.programs?.length === 0 && (
+                      <tr><td colSpan={4} className="px-5 py-8 text-center text-sm text-slate-400">No programs yet.</td></tr>
+                    )}
+                    {data.programs?.map((p) => (
+                      <tr key={p.id} className="border-t border-slate-100" data-testid="dashboard-health-row">
+                        <td className="px-5 py-3 font-medium text-slate-800">{p.name}</td>
+                        <td className="px-5 py-3 text-slate-600">{p.client}</td>
+                        <td className="px-5 py-3 text-right font-mono-data text-slate-600">{p.session_count}</td>
+                        <td className="px-5 py-3 text-right">
+                          <HealthBadge health={p.health} testid={`dashboard-health-${p.id}`} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
           </section>
         </>
       )}

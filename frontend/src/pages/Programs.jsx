@@ -6,17 +6,160 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import HealthBadge from "@/components/HealthBadge";
 import {
-  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter,
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Plus, Pencil, Trash2, X, Loader2, Users, Hash, Building2, FolderKanban,
-  Upload, Save, CalendarPlus,
+  Upload, Save, CalendarPlus, CheckCircle2, AlertTriangle, SkipForward,
 } from "lucide-react";
+
+// Live mentor availability hook for a single session draft
+function useAvailability(mentor, dateStr, start, end, excludeId) {
+  const [state, setState] = useState({ status: "idle", conflicts: [] });
+  useEffect(() => {
+    if (!mentor || !dateStr || !start || !end) { setState({ status: "idle", conflicts: [] }); return; }
+    let active = true;
+    setState((s) => ({ ...s, status: "checking" }));
+    const t = setTimeout(async () => {
+      try {
+        const r = await api.post("/availability/check", {
+          mentor_name: mentor, date: dateStr, start_time: start, end_time: end, exclude_session_id: excludeId,
+        });
+        if (active) setState({ status: r.data.available ? "available" : "conflict", conflicts: r.data.conflicts });
+      } catch (_) {
+        if (active) setState({ status: "idle", conflicts: [] });
+      }
+    }, 450);
+    return () => { active = false; clearTimeout(t); };
+  }, [mentor, dateStr, start, end, excludeId]);
+  return state;
+}
+
+function AvailabilityHint({ state }) {
+  if (state.status === "checking")
+    return <span className="flex items-center gap-1 text-xs text-slate-400"><Loader2 className="h-3 w-3 animate-spin" /> Checking…</span>;
+  if (state.status === "available")
+    return <span className="flex items-center gap-1 text-xs font-medium text-emerald-600" data-testid="avail-available"><CheckCircle2 className="h-3 w-3" /> Available</span>;
+  if (state.status === "conflict") {
+    const c = state.conflicts[0];
+    return (
+      <span className="flex items-start gap-1 text-xs font-medium text-red-600" data-testid="avail-conflict">
+        <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+        Occupied: {c.program_name} {c.start}-{c.end}
+      </span>
+    );
+  }
+  return null;
+}
+
+function SessionRow({ s, onChange, onSave, onDelete }) {
+  const avail = useAvailability(s.mentor_name, s.date, s.start_time, s.end_time, s.id);
+  const blocked = avail.status === "conflict";
+  return (
+    <div className="rounded-md border border-slate-200 p-3" data-testid="session-row">
+      <div className="grid grid-cols-12 gap-2">
+        <Input type="date" className="col-span-4 h-8 text-xs" value={s.date} onChange={(e) => onChange({ date: e.target.value })} />
+        <Input type="time" className="col-span-4 h-8 text-xs" value={s.start_time} onChange={(e) => onChange({ start_time: e.target.value })} />
+        <Input type="time" className="col-span-4 h-8 text-xs" value={s.end_time} onChange={(e) => onChange({ end_time: e.target.value })} />
+        <Input className="col-span-7 h-8 text-xs" placeholder="Topic" value={s.topic || ""} onChange={(e) => onChange({ topic: e.target.value })} />
+        <Input className="col-span-5 h-8 text-xs" placeholder="Mentor" value={s.mentor_name || ""} onChange={(e) => onChange({ mentor_name: e.target.value })} />
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <AvailabilityHint state={avail} />
+        <div className="flex gap-2">
+          <Button size="sm" variant="ghost" className="h-7 text-xs text-red-500 hover:text-red-600" onClick={onDelete}>
+            <Trash2 className="mr-1 h-3 w-3" /> Delete
+          </Button>
+          <Button size="sm" disabled={blocked} className="h-7 bg-slate-900 text-xs hover:bg-slate-800 disabled:opacity-50" onClick={onSave} data-testid="save-session-btn">
+            <Save className="mr-1 h-3 w-3" /> Save
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConflictRow({ row, onChange }) {
+  const avail = useAvailability(row.mentor_name, row.date, row.start_time, row.end_time);
+  return (
+    <div className={`rounded-md border p-3 ${row.skip ? "border-slate-200 bg-slate-50 opacity-60" : "border-red-200 bg-red-50/40"}`} data-testid="conflict-row">
+      <div className="grid grid-cols-12 gap-2">
+        <Input type="date" className="col-span-4 h-8 text-xs" value={row.date} onChange={(e) => onChange({ date: e.target.value })} disabled={row.skip} />
+        <Input type="time" className="col-span-4 h-8 text-xs" value={row.start_time} onChange={(e) => onChange({ start_time: e.target.value })} disabled={row.skip} />
+        <Input type="time" className="col-span-4 h-8 text-xs" value={row.end_time} onChange={(e) => onChange({ end_time: e.target.value })} disabled={row.skip} />
+        <Input className="col-span-7 h-8 text-xs" placeholder="Topic" value={row.topic || ""} onChange={(e) => onChange({ topic: e.target.value })} disabled={row.skip} />
+        <Input className="col-span-5 h-8 text-xs" placeholder="Mentor" value={row.mentor_name || ""} onChange={(e) => onChange({ mentor_name: e.target.value })} disabled={row.skip} />
+      </div>
+      <div className="mt-2 flex items-center justify-between">
+        {row.skip ? <span className="text-xs text-slate-400">Skipped — will not be imported</span> : <AvailabilityHint state={avail} />}
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onChange({ skip: !row.skip })} data-testid="conflict-skip-btn">
+          <SkipForward className="mr-1 h-3 w-3" /> {row.skip ? "Include" : "Skip"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ScheduleResolver({ data, onDone, onClose }) {
+  const [rows, setRows] = useState(
+    data.conflicts.map((c) => ({ ...c.session, skip: false }))
+  );
+  const [committing, setCommitting] = useState(false);
+
+  const setRow = (i, patch) => setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+
+  const commit = async () => {
+    setCommitting(true);
+    try {
+      const resolved = rows.filter((r) => !r.skip).map((r) => ({
+        date: r.date, start_time: r.start_time, end_time: r.end_time, topic: r.topic, mentor_name: r.mentor_name,
+      }));
+      const sessions = [...data.clean, ...resolved];
+      const r = await api.post(`/programs/${data.programId}/sessions/bulk`, { sessions });
+      toast.success(`Imported ${r.data.inserted} session(s)` + (r.data.skipped.length ? `, ${r.data.skipped.length} still conflicting (skipped).` : "."));
+      onDone();
+    } catch (e) {
+      toast.error("Failed to commit schedule.");
+    } finally {
+      setCommitting(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl" data-testid="schedule-resolver">
+        <DialogHeader>
+          <DialogTitle className="font-display flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" /> Resolve Schedule Conflicts
+          </DialogTitle>
+        </DialogHeader>
+        <div className="text-sm text-slate-600">
+          <span className="font-semibold text-emerald-600">{data.clean.length}</span> session(s) are clear and will be imported.{" "}
+          <span className="font-semibold text-red-600">{data.conflicts.length}</span> have mentor clashes — reassign the mentor/time or skip each.
+        </div>
+        <div className="max-h-[50vh] space-y-2 overflow-y-auto py-1">
+          {rows.map((row, i) => <ConflictRow key={i} row={row} onChange={(p) => setRow(i, p)} />)}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button className="bg-slate-900 hover:bg-slate-800" onClick={commit} disabled={committing} data-testid="schedule-commit-btn">
+            {committing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+            Commit Schedule
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function TagInput({ tags, onChange, testid }) {
   const [val, setVal] = useState("");
@@ -135,11 +278,15 @@ function EditDrawer({ programId, open, onOpenChange, onChanged }) {
     setDetail((d) => ({ ...d, sessions: d.sessions.map((s) => (s.id === sid ? { ...s, ...patch } : s)) }));
   };
   const saveSession = async (s) => {
-    await api.put(`/sessions/${s.id}`, {
-      date: s.date, start_time: s.start_time, end_time: s.end_time, topic: s.topic, mentor_name: s.mentor_name,
-    });
-    toast.success("Session saved.");
-    onChanged();
+    try {
+      await api.put(`/sessions/${s.id}`, {
+        date: s.date, start_time: s.start_time, end_time: s.end_time, topic: s.topic, mentor_name: s.mentor_name,
+      });
+      toast.success("Session saved.");
+      onChanged();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Could not save session.");
+    }
   };
   const deleteSession = async (sid) => {
     await api.delete(`/sessions/${sid}`);
@@ -148,13 +295,17 @@ function EditDrawer({ programId, open, onOpenChange, onChanged }) {
     onChanged();
   };
   const addSession = async () => {
-    const r = await api.post(`/sessions`, {
-      program_id: programId, date: new Date().toISOString().slice(0, 10),
-      start_time: "10:00", end_time: "12:00", topic: "New Session",
-      mentor_name: detail?.mentors?.[0] || "",
-    });
-    setDetail((d) => ({ ...d, sessions: [...d.sessions, r.data] }));
-    onChanged();
+    try {
+      const r = await api.post(`/sessions`, {
+        program_id: programId, date: new Date().toISOString().slice(0, 10),
+        start_time: "10:00", end_time: "12:00", topic: "New Session",
+        mentor_name: detail?.mentors?.[0] || "",
+      });
+      setDetail((d) => ({ ...d, sessions: [...d.sessions, r.data] }));
+      onChanged();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Could not add session (mentor conflict).");
+    }
   };
 
   return (
@@ -186,23 +337,13 @@ function EditDrawer({ programId, open, onOpenChange, onChanged }) {
                   </p>
                 )}
                 {detail.sessions.map((s) => (
-                  <div key={s.id} className="rounded-md border border-slate-200 p-3" data-testid="session-row">
-                    <div className="grid grid-cols-12 gap-2">
-                      <Input type="date" className="col-span-4 h-8 text-xs" value={s.date} onChange={(e) => updateSession(s.id, { date: e.target.value })} />
-                      <Input type="time" className="col-span-4 h-8 text-xs" value={s.start_time} onChange={(e) => updateSession(s.id, { start_time: e.target.value })} />
-                      <Input type="time" className="col-span-4 h-8 text-xs" value={s.end_time} onChange={(e) => updateSession(s.id, { end_time: e.target.value })} />
-                      <Input className="col-span-7 h-8 text-xs" placeholder="Topic" value={s.topic || ""} onChange={(e) => updateSession(s.id, { topic: e.target.value })} />
-                      <Input className="col-span-5 h-8 text-xs" placeholder="Mentor" value={s.mentor_name || ""} onChange={(e) => updateSession(s.id, { mentor_name: e.target.value })} />
-                    </div>
-                    <div className="mt-2 flex justify-end gap-2">
-                      <Button size="sm" variant="ghost" className="h-7 text-xs text-red-500 hover:text-red-600" onClick={() => deleteSession(s.id)}>
-                        <Trash2 className="mr-1 h-3 w-3" /> Delete
-                      </Button>
-                      <Button size="sm" className="h-7 bg-slate-900 text-xs hover:bg-slate-800" onClick={() => saveSession(s)} data-testid="save-session-btn">
-                        <Save className="mr-1 h-3 w-3" /> Save
-                      </Button>
-                    </div>
-                  </div>
+                  <SessionRow
+                    key={s.id}
+                    s={s}
+                    onChange={(patch) => updateSession(s.id, patch)}
+                    onSave={() => saveSession(s)}
+                    onDelete={() => deleteSession(s.id)}
+                  />
                 ))}
               </div>
             </div>
@@ -220,6 +361,7 @@ export default function Programs() {
   const [submitting, setSubmitting] = useState(false);
   const [scheduleFile, setScheduleFile] = useState(null);
   const [editId, setEditId] = useState(null);
+  const [resolver, setResolver] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -235,7 +377,13 @@ export default function Programs() {
         const fd = new FormData();
         fd.append("file", scheduleFile);
         const sr = await api.post(`/programs/${r.data.id}/schedule`, fd);
-        toast.success(`Program created · ${sr.data.inserted} sessions imported.`);
+        if (sr.data.conflicts.length === 0) {
+          await api.post(`/programs/${r.data.id}/sessions/bulk`, { sessions: sr.data.clean });
+          toast.success(`Program created · ${sr.data.clean.length} sessions imported.`);
+        } else {
+          setResolver({ programId: r.data.id, clean: sr.data.clean, conflicts: sr.data.conflicts });
+          toast.warning(`Program created · ${sr.data.conflicts.length} schedule conflict(s) to resolve.`);
+        }
       } else {
         toast.success("Program created.");
       }
@@ -301,7 +449,10 @@ export default function Programs() {
                   <Row icon={Users} text={p.mentors?.length ? p.mentors.join(", ") : "No mentors"} />
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                  <Badge variant="secondary" className="font-mono-data">{p.session_count} sessions</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="font-mono-data">{p.session_count} sessions</Badge>
+                    <HealthBadge health={p.health} testid={`program-health-${p.id}`} />
+                  </div>
                   <div className="flex gap-1">
                     <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditId(p.id)} data-testid="edit-program-btn">
                       <Pencil className="h-4 w-4" />
@@ -336,6 +487,14 @@ export default function Programs() {
       )}
 
       <EditDrawer programId={editId} open={!!editId} onOpenChange={(o) => !o && setEditId(null)} onChanged={load} />
+
+      {resolver && (
+        <ScheduleResolver
+          data={resolver}
+          onClose={() => { setResolver(null); setAddOpen(false); setScheduleFile(null); load(); }}
+          onDone={() => { setResolver(null); setAddOpen(false); setScheduleFile(null); load(); }}
+        />
+      )}
     </div>
   );
 }

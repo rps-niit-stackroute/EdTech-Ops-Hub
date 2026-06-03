@@ -414,14 +414,21 @@ def process_attendance(tracker_bytes, tracker_name, teams_bytes, teams_name,
 
     out_name = rename_with_new_date(tracker_name, session_date_iso)
 
+    matched_atts = [r["attentiveness"] for r in results.values() if r.get("matched")]
+    present_count = sum(1 for r in results.values() if r.get("present"))
+    avg_attendance_pct = round((present_count / len(enrolled)) * 100, 1) if enrolled else 0.0
+    avg_attentiveness_pct = round((sum(matched_atts) / len(matched_atts)) * 100, 1) if matched_atts else 0.0
+
     info = {
         "unmatched": unmatched,
         "uncertain": [n for n, r in results.items() if r.get("uncertain")],
         "total_participants": len(participants),
         "matched": sum(1 for r in results.values() if r.get("matched")),
-        "present": sum(1 for r in results.values() if r.get("present")),
+        "present": present_count,
         "enrolled": len(enrolled),
         "session_minutes": round(session_minutes, 1),
+        "avg_attendance_pct": avg_attendance_pct,
+        "avg_attentiveness_pct": avg_attentiveness_pct,
         "output_filename": out_name,
     }
     return out.getvalue(), out_name, info

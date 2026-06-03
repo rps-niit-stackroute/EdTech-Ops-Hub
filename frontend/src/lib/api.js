@@ -3,7 +3,7 @@ import axios from "axios";
 const BASE = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BASE}/api`;
 
-export const api = axios.create({ baseURL: API });
+export const api = axios.create({ baseURL: API, withCredentials: true });
 
 export const PROGRAM_COLORS = [
   { bg: "#DBEAFE", border: "#3B82F6", text: "#1E40AF" },

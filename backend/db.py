@@ -38,6 +38,7 @@ async def seed_if_empty():
             "name": "CTS - CNA Level 1", "client": "CTS",
             "project_code": "S01518-SMP001ISDL001N001", "team_member": "Santosh",
             "mentors": ["Manoj Ajmer"],
+            "att_pct": 92.0, "attn_pct": 86.0,
             "sessions": [
                 {"date": d(0), "start_time": "09:30", "end_time": "12:00",
                  "topic": "Architecture Concepts, Techniques and Tools", "mentor_name": "Manoj Ajmer"},
@@ -54,6 +55,7 @@ async def seed_if_empty():
             "name": "Engineering Beyond Code Program", "client": "Lowes",
             "project_code": "S01600-LOWES01ISDL001N001", "team_member": "Kavya",
             "mentors": ["Kishore"],
+            "att_pct": 64.0, "attn_pct": 58.0,
             "sessions": [
                 {"date": d(1), "start_time": "18:00", "end_time": "20:00",
                  "topic": "Data-Intensive Design Core", "mentor_name": "Kishore"},
@@ -67,6 +69,7 @@ async def seed_if_empty():
             "name": "UST - Aspiring Architect Batch 5", "client": "UST",
             "project_code": "S01128-SMP001ISDL001N001", "team_member": "Santosh",
             "mentors": ["Ashish Juyal"],
+            "att_pct": 89.0, "attn_pct": 82.0,
             "sessions": [
                 {"date": d(2), "start_time": "10:00", "end_time": "12:30",
                  "topic": "Solution Architecture Foundations", "mentor_name": "Ashish Juyal"},
@@ -78,6 +81,7 @@ async def seed_if_empty():
             "name": "DXC - Project Manager Batch 1", "client": "DXC",
             "project_code": "S01470-SMP001ISDL001N001", "team_member": "Rohit",
             "mentors": ["Anupam"],
+            "att_pct": 42.0, "attn_pct": 38.0,
             "sessions": [
                 {"date": d(2), "start_time": "14:00", "end_time": "16:00",
                  "topic": "Agile Delivery Essentials", "mentor_name": "Anupam"},
@@ -92,7 +96,19 @@ async def seed_if_empty():
     for p in seed:
         pid = new_id()
         sessions = p.pop("sessions")
+        att = p.pop("att_pct")
+        attn = p.pop("attn_pct")
         doc = {"id": pid, "created_at": now_iso(), **p}
         await programs_col.insert_one(doc)
         for s in sessions:
             await sessions_col.insert_one({"id": new_id(), "program_id": pid, **s})
+        # seed two attendance summary records so Health Scores are meaningful
+        for k in range(2):
+            await db["attendance_records"].insert_one({
+                "id": new_id(), "program_id": pid,
+                "session_name": f"{p['name']} — Session {k+1}",
+                "date": d(-7 + k * 3),
+                "attendance_pct": att, "attentiveness_pct": attn,
+                "present": int(att / 10), "enrolled": 10,
+                "filename": "seed.xlsx", "created_at": now_iso(),
+            })
