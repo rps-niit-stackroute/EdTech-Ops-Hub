@@ -142,6 +142,7 @@ export default function SOW() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-900 text-left text-xs uppercase tracking-wider text-white">
+                    <th className="px-4 py-2.5 font-semibold">S.No</th>
                     <th className="px-4 py-2.5 font-semibold">Mentor</th>
                     <th className="px-4 py-2.5 font-semibold">Program</th>
                     <th className="px-4 py-2.5 font-semibold">Project Code</th>
@@ -149,13 +150,17 @@ export default function SOW() {
                     <th className="px-4 py-2.5 font-semibold">Month</th>
                     <th className="px-4 py-2.5 text-right font-semibold">Sessions</th>
                     <th className="px-4 py-2.5 text-right font-semibold">Hours</th>
+                    <th className="px-4 py-2.5 font-semibold">Dates</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.grouped.map((grp) => (
+                  {(() => { let sno = 0; return data.grouped.map((grp) => (
                     <Fragment key={grp.mentor}>
-                      {grp.rows.map((r, i) => (
+                      {grp.rows.map((r, i) => {
+                        sno += 1;
+                        return (
                         <tr key={`${grp.mentor}-${i}`} className="border-b border-slate-100" data-testid="sow-row">
+                          <td className="px-4 py-2.5 font-mono-data text-xs text-slate-500">{sno}</td>
                           <td className="px-4 py-2.5 font-medium text-slate-800">{r.mentor}</td>
                           <td className="px-4 py-2.5 text-slate-700">{r.program_name}</td>
                           <td className="px-4 py-2.5 font-mono-data text-xs text-slate-500">{r.project_code}</td>
@@ -163,19 +168,23 @@ export default function SOW() {
                           <td className="px-4 py-2.5 text-slate-500">{r.month}</td>
                           <td className="px-4 py-2.5 text-right font-mono-data">{r.sessions_conducted}</td>
                           <td className="px-4 py-2.5 text-right font-mono-data">{r.total_hours}</td>
+                          <td className="px-4 py-2.5 font-mono-data text-xs text-slate-600">{r.dates}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                       <tr key={`${grp.mentor}-sub`} className="border-b border-slate-200 bg-slate-100 font-semibold" data-testid="sow-subtotal">
-                        <td className="px-4 py-2" colSpan={5}>{grp.mentor} — Subtotal</td>
+                        <td className="px-4 py-2" colSpan={6}>{grp.mentor} — Subtotal</td>
                         <td className="px-4 py-2 text-right font-mono-data">{grp.subtotal_sessions}</td>
                         <td className="px-4 py-2 text-right font-mono-data">{grp.subtotal_hours}</td>
+                        <td className="px-4 py-2"></td>
                       </tr>
                     </Fragment>
-                  ))}
+                  )); })()}
                   <tr className="bg-amber-100 font-bold text-slate-900" data-testid="sow-grand-total">
-                    <td className="px-4 py-3" colSpan={5}>GRAND TOTAL</td>
+                    <td className="px-4 py-3" colSpan={6}>GRAND TOTAL</td>
                     <td className="px-4 py-3 text-right font-mono-data">{data.grand_total.sessions}</td>
                     <td className="px-4 py-3 text-right font-mono-data">{data.grand_total.hours}</td>
+                    <td className="px-4 py-3"></td>
                   </tr>
                 </tbody>
               </table>

@@ -12,7 +12,7 @@ import io
 
 from db import programs_col, sessions_col, seed_if_empty, new_id, now_iso
 from excel_utils import time_to_minutes
-from attendance_processor import process_attendance
+from attendance_processor import process_attendance, parse_teams_export
 from schedule_parser import parse_schedule
 from sow_export import build_sow_excel
 
@@ -338,13 +338,20 @@ async def build_sow_data(month, year, mentors, programs):
                         "project_code": p.get("project_code", ""),
                         "client": p.get("client", ""),
                         "month": month_label,
-                        "sessions_conducted": 0, "total_hours": 0.0}
+                        "sessions_conducted": 0, "total_hours": 0.0,
+                        "_dates": set()}
         agg[key]["sessions_conducted"] += 1
         agg[key]["total_hours"] += session_hours(s)
+        agg[key]["_dates"].add(s["date"])
 
     by_mentor = {}
     for row in agg.values():
         row["total_hours"] = round(row["total_hours"], 2)
+        # format dates like "2 May, 9 May, 16 May"
+        sorted_dates = sorted(row.pop("_dates"))
+        row["dates"] = ", ".join(
+            datetime.strptime(d, "%Y-%m-%d").strftime("%-d %b") for d in sorted_dates
+        )
         by_mentor.setdefault(row["mentor"], []).append(row)
 
     grouped = []
@@ -411,6 +418,16 @@ async def attendance_update(
             "X-Output-Filename": quote(out_name),
         },
     )
+
+
+@api.post("/attendance/detect-date")
+async def attendance_detect_date(teams: UploadFile = File(...)):
+    teams_bytes = await teams.read()
+    try:
+        parsed = parse_teams_export(teams_bytes, teams.filename)
+        return {"session_date": parsed.get("session_date")}
+    except Exception:
+        return {"session_date": None}
 
 
 @api.get("/")

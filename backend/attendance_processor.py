@@ -86,7 +86,6 @@ def parse_teams_export(file_bytes, filename):
             break
 
     participants = []
-    attentiveness_available = "attentiveness" in col_map
     if header_idx is not None and "name" in col_map and "duration" in col_map:
         for r in rows[header_idx + 1:]:
             if not r:
@@ -103,17 +102,10 @@ def parse_teams_export(file_bytes, filename):
                 continue
             dur = r[col_map["duration"]] if col_map["duration"] < len(r) else ""
             minutes = parse_duration_to_minutes(dur)
-            att = None
-            if attentiveness_available and col_map["attentiveness"] < len(r):
-                av = str(r[col_map["attentiveness"]]).strip()
-                m = re.search(r'[\d.]+', av)
-                if m:
-                    att = float(m.group(0))
             participants.append({
                 "raw": name_raw,
                 "name": normalize_teams_name(name_raw),
                 "minutes": minutes,
-                "attentiveness": att,
                 "first_join": str(r[col_map["first_join"]]).strip() if col_map.get("first_join", 99) < len(r) else "",
                 "last_leave": str(r[col_map["last_leave"]]).strip() if col_map.get("last_leave", 99) < len(r) else "",
             })
@@ -121,11 +113,47 @@ def parse_teams_export(file_bytes, filename):
     if not session_minutes:
         session_minutes = max((p["minutes"] for p in participants), default=0.0)
 
+    # Highest duration among all participants -> denominator for attentiveness
+    max_minutes = max((p["minutes"] for p in participants), default=0.0)
+
     return {
         "participants": participants,
         "session_minutes": session_minutes or 0.0,
-        "attentiveness_available": attentiveness_available,
+        "max_minutes": max_minutes or 0.0,
+        "session_date": _detect_session_date(rows, participants),
     }
+
+
+def _detect_session_date(rows, participants):
+    """Detect the session date (ISO) from Teams summary 'Meeting Start Time' or a participant join."""
+    candidates = []
+    for r in rows:
+        for i, c in enumerate(r):
+            if c and re.search(r'meeting\s+start', str(c), re.I):
+                for j in range(i + 1, len(r)):
+                    if str(r[j]).strip():
+                        candidates.append(str(r[j]))
+                        break
+    if participants:
+        candidates.append(participants[0].get("first_join", ""))
+    for cand in candidates:
+        iso = _parse_teams_datetime(cand)
+        if iso:
+            return iso
+    return None
+
+
+def _parse_teams_datetime(s):
+    if not s:
+        return None
+    first = str(s).split(",")[0].strip()
+    for fmt in ("%m/%d/%y", "%m/%d/%Y", "%d-%b-%Y", "%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y"):
+        try:
+            from datetime import datetime as _dt
+            return _dt.strptime(first, fmt).strftime("%Y-%m-%d")
+        except Exception:
+            continue
+    return None
 
 
 # ----------------------------- Name matching -----------------------------
@@ -133,7 +161,7 @@ def _norm(s):
     return re.sub(r'\s+', ' ', str(s or "").lower()).strip()
 
 
-def match_participants(enrolled_names, participants, session_minutes, threshold_pct):
+def match_participants(enrolled_names, participants, session_minutes, threshold_pct, max_minutes=0.0):
     """Returns (results_by_enrolled, unmatched_participants).
     results_by_enrolled[name] = {present, attentiveness, matched, uncertain}"""
     results = {}
@@ -175,15 +203,18 @@ def match_participants(enrolled_names, participants, session_minutes, threshold_
         if match is not None:
             used.add(used_i)
             present = (match["minutes"] / session_minutes) >= (threshold_pct / 100.0) if session_minutes else False
+            # Attentiveness = participant duration / highest duration among all participants
+            attentiveness = round(match["minutes"] / max_minutes, 4) if max_minutes else 0.0
             results[enrolled] = {
                 "present": present,
-                "attentiveness": match["attentiveness"],
+                "attentiveness": attentiveness,
                 "matched": True,
                 "uncertain": uncertain,
                 "minutes": match["minutes"],
             }
         else:
-            results[enrolled] = {"present": False, "attentiveness": None,
+            # Absent participant -> 0 (matches existing sheet's absent format)
+            results[enrolled] = {"present": False, "attentiveness": 0.0,
                                  "matched": False, "uncertain": False, "minutes": 0}
 
     unmatched = [p["raw"] for i, (pn, p) in enumerate(p_norm) if i not in used]
@@ -248,14 +279,13 @@ def _append_consolidated(ws, header_label, results):
     for r, name in rows:
         res = results.get(name, {})
         ac = ws.cell(row=r, column=new_att, value="Yes" if res.get("present") else "No")
-        att = res.get("attentiveness")
-        bc = ws.cell(row=r, column=new_atten, value=(att if att is not None else "N/A"))
-        if att is not None and isinstance(att, float) and att <= 1:
-            bc.number_format = "0.00%"
+        att = res.get("attentiveness", 0.0) or 0.0
+        bc = ws.cell(row=r, column=new_atten, value=att)
         if tmpl_att:
             copy_cell_style(ws.cell(row=r, column=tmpl_att), ac)
         if tmpl_atten:
             copy_cell_style(ws.cell(row=r, column=tmpl_atten), bc)
+        bc.number_format = "0.00%"  # display computed attentiveness as a percentage
 
 
 def _append_overall(ws, header_label, results):
@@ -311,14 +341,14 @@ def _append_login(ws, header_label, participants):
         cell = ws.cell(row=3, column=cols[i], value=lab)
         if tmpl_start:
             copy_cell_style(ws.cell(row=3, column=tmpl_start + i), cell)
-    # data rows from row 4
+    # data rows from row 4 — copy style from the template group's first data row (row 4)
     for di, p in enumerate(participants):
         r = 4 + di
         vals = [p["raw"], p.get("first_join", ""), p.get("last_leave", ""), _fmt_minutes(p["minutes"])]
         for i, val in enumerate(vals):
             cell = ws.cell(row=r, column=cols[i], value=val)
             if tmpl_start:
-                copy_cell_style(ws.cell(row=min(r, ws.max_row), column=tmpl_start + i), cell)
+                copy_cell_style(ws.cell(row=4, column=tmpl_start + i), cell)
 
 
 def _fmt_minutes(mins):
@@ -341,6 +371,7 @@ def process_attendance(tracker_bytes, tracker_name, teams_bytes, teams_name,
     parsed = parse_teams_export(teams_bytes, teams_name)
     participants = parsed["participants"]
     session_minutes = parsed["session_minutes"]
+    max_minutes = parsed["max_minutes"]
 
     wb = openpyxl.load_workbook(io.BytesIO(tracker_bytes))
     sheetnames = wb.sheetnames
@@ -362,7 +393,7 @@ def process_attendance(tracker_bytes, tracker_name, teams_bytes, teams_name,
         nc = _find_name_column(ws_consol)
         enrolled = [n for _, n in _enrolled_rows(ws_consol, nc, 3)]
 
-    results, unmatched = match_participants(enrolled, participants, session_minutes, threshold_pct)
+    results, unmatched = match_participants(enrolled, participants, session_minutes, threshold_pct, max_minutes)
 
     # date label like (22-05-26)
     from datetime import datetime

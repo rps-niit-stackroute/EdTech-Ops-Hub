@@ -59,6 +59,28 @@ export default function Attendance() {
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [blobUrl, setBlobUrl] = useState(null);
+  const [detecting, setDetecting] = useState(false);
+
+  const handleTeamsChange = async (f) => {
+    setTeams(f);
+    if (!f) return;
+    setDetecting(true);
+    try {
+      const fd = new FormData();
+      fd.append("teams", f);
+      const r = await api.post("/attendance/detect-date", fd);
+      if (r.data?.session_date) {
+        setSessionDate(r.data.session_date);
+        toast.success(`Session date auto-detected: ${r.data.session_date}`);
+      } else {
+        toast.info("Couldn't auto-detect date — please pick it manually.");
+      }
+    } catch (_) {
+      /* silent */
+    } finally {
+      setDetecting(false);
+    }
+  };
 
   const reset = () => {
     setStatus("idle");
@@ -129,7 +151,7 @@ export default function Attendance() {
         <Card className="rounded-md border-slate-200 p-6 lg:col-span-3">
           <div className="space-y-5">
             <FileDrop id="tracker-file" label="Existing Tracker Excel (.xlsx)" accept=".xlsx" file={tracker} onChange={setTracker} testid="attendance-tracker-input" />
-            <FileDrop id="teams-file" label="Teams Attendance Export (.csv / .xlsx)" accept=".csv,.xlsx" file={teams} onChange={setTeams} testid="attendance-teams-input" />
+            <FileDrop id="teams-file" label="Teams Attendance Export (.csv / .xlsx)" accept=".csv,.xlsx" file={teams} onChange={handleTeamsChange} testid="attendance-teams-input" />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -143,7 +165,10 @@ export default function Attendance() {
                 />
               </div>
               <div>
-                <Label className="label-caps">Session Date</Label>
+                <Label className="label-caps flex items-center gap-1.5">
+                  Session Date
+                  {detecting && <Loader2 className="h-3 w-3 animate-spin text-blue-500" />}
+                </Label>
                 <Input
                   type="date"
                   className="mt-2"
@@ -151,6 +176,7 @@ export default function Attendance() {
                   onChange={(e) => setSessionDate(e.target.value)}
                   data-testid="attendance-session-date"
                 />
+                <p className="mt-1 text-[11px] text-slate-400">Auto-detected from the Teams export · editable</p>
               </div>
             </div>
 

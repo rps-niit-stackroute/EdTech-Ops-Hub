@@ -1,0 +1,44 @@
+{
+  "summary": "Verified all 6 correction requests on EdTech Ops Hub. Backend: 24/24 pytest passed (10 new correction tests in test_corrections.py + 14 regression in test_backend.py). Frontend: SOW preview shows S.No first + Dates after Hours with '5 Jun, 8 Jun, 15 Jun'; first data row S.No=1; subtotals preserved in preview; grand total row uses colSpan covering S.No+descriptive cols (effectively blank S.No). Attendance auto-detect-date: uploading a Teams file auto-fills Session Date (2026-06-15) via POST /api/attendance/detect-date and leaves Session Name empty for user input. Regression OK: dashboard, calendar, programs all load. All corrections work end-to-end.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "startup", "issue": "Still uses deprecated @app.on_event('startup'); migrate to lifespan context manager (carry-over from iter 1)."},
+      {"endpoint": "CORS", "issue": "allow_credentials=True + allow_origins=['*'] still invalid per spec (carry-over from iter 1)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/sow preview Grand Total row", "issues": ["Grand total uses <td colSpan=6> covering S.No+Mentor+Program+Project Code+Client+Month with text 'GRAND TOTAL'. Visually S.No is blank (no number shown) which matches the spec intent, but if a literal blank S.No <td> followed by 'GRAND TOTAL' in the Mentor cell is desired (to mirror the Excel structure exactly), that would need a small refactor. Currently acceptable."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_corrections.py",
+    "/app/backend/tests/test_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "attendance_processor.py match_participants() correctly computes attentiveness = participant_duration / max(participant_durations) and sets absent enrollees to 0. Highest-duration participant maps to 1.0 (100%). Verified via test: Seshadri Rajan (2h 28m, 148m) -> 1.0; Mrudul Gupta (1h 5m, 65m) -> 0.4392.",
+    "_append_consolidated() copies font/fill/border from existing session columns via copy_cell_style() and applies number_format '0.00%' to attentiveness cells. Verified appended cells have fill.patternType='solid' + at least one border side set.",
+    "_append_login() merges row1-2 across the new 4-col group and copies styling from previous group's row1/row3/row4. Verified solid fill on row1 header and row3 sub-headers.",
+    "build_sow_data() now produces 'dates' field per row formatted '%-d %b' joined with ', '. Linux-only strftime token; fine in this container.",
+    "build_sow_excel() COLUMNS = [S.No, Mentor Name, Program Name, Project Code, Client, Month, Sessions Conducted, Total Hours, Dates]. No per-mentor subtotal rows. Grand total writes from col 2 (Mentor Name) leaving col 1 (S.No) None. S.No sequential 1..N on data rows.",
+    "/api/attendance/detect-date returns {session_date: 'YYYY-MM-DD'} parsed from 'Meeting Start Time' in Teams summary. Handles formats m/d/yy, m/d/yyyy etc. via _parse_teams_datetime().",
+    "Attendance.jsx handleTeamsChange() awaits /attendance/detect-date and sets only sessionDate; sessionName is intentionally NOT auto-filled (matches spec).",
+    "SOW.jsx preview keeps per-mentor subtotal rows (intended) and grand total uses colSpan={6} on the first cell — acceptable but means S.No <td> isn't a separate blank cell in the DOM. If exact mirror of Excel is desired, split into <td></td><td colSpan=5>GRAND TOTAL</td>.",
+    "Minor lint: server.py still 450+ lines but well-organized; consider splitting into routers if growth continues (carry-over)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_corrections.py"
+  ],
+  "success_rate": {"backend": "100% (24/24, incl 10 new correction tests)", "frontend": "100% (SOW preview cols + Attendance auto-date + 3 regression pages)"},
+  "test_credentials": "N/A — no auth.",
+  "seed_data_creation": "Used existing seed (4 programs / 12 sessions / 1 clash). Tracker sample at /app/samples/tracker.xlsx. Synthesized UTF-16 TSV Teams export with enrolled names 'Seshadri Rajan' (148 min, highest -> 100%) + 'Mrudul Gupta' (65 min -> 43.92%) + 'Unknown Person' (unmatched) for attentiveness verification.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Two test files: /app/backend/tests/test_backend.py (14 regression cases) and /app/backend/tests/test_corrections.py (10 cases for the 6 corrections). Both runnable as `pytest /app/backend/tests/ -v`. The Teams export synth helper uses enrolled-tracker names (Seshadri Rajan, Mrudul Gupta) so attentiveness assertions work against the real /app/samples/tracker.xlsx. Use 6/2026 for SOW tests (seed sessions anchored to June 2026). /api/attendance/detect-date accepts only the 'teams' file field. Frontend testids unchanged: sow-preview, sow-row, sow-subtotal, sow-grand-total, attendance-teams-input, attendance-session-date, attendance-session-name.",
+  "rca of the issue": "No bugs to RCA — all 6 corrections behave per spec. Single test re-spin needed: initially used mentor names (Manoj Ajmer) in synth Teams export, but the tracker's enrolled-participants column lists associates (Seshadri Rajan, Mrudul Gupta, etc.). Switched test fixture to enrolled names; all assertions then passed."
+}
