@@ -181,7 +181,8 @@ export default function SOW() {
                     </Fragment>
                   )); })()}
                   <tr className="bg-amber-100 font-bold text-slate-900" data-testid="sow-grand-total">
-                    <td className="px-4 py-3" colSpan={6}>GRAND TOTAL</td>
+                    <td className="px-4 py-3"></td>
+                    <td className="px-4 py-3" colSpan={5}>GRAND TOTAL</td>
                     <td className="px-4 py-3 text-right font-mono-data">{data.grand_total.sessions}</td>
                     <td className="px-4 py-3 text-right font-mono-data">{data.grand_total.hours}</td>
                     <td className="px-4 py-3"></td>
