@@ -178,7 +178,7 @@ export default function Attendance() {
             <Button
               className="w-full bg-slate-900 hover:bg-slate-800"
               onClick={submit}
-              disabled={status === "loading"}
+              disabled={status === "loading" || !tracker || !teams || !sessionName || !sessionDate}
               data-testid="attendance-process-btn"
             >
               {status === "loading" ? (
