@@ -1,0 +1,143 @@
+{
+  "project_name": "EdTech Ops Hub",
+  "theme_strategy": {
+    "theme": "Hybrid (Dark Sidebar, Light Content)",
+    "archetype": "4 (Swiss & High-Contrast)",
+    "reasoning": "As an internal SaaS operations tool for tracking attendance and schedules, clarity, authority, and data density are paramount. The high-contrast Swiss archetype ensures legibility and immediate identification of anomalies (like scheduling clashes), while avoiding the 'clinical' feel via stark, structural aesthetics.",
+    "forbidden_elements": ["Purple-blue gradients", "Inter for headings", "Soft blurry shadows", "Center-aligned data"]
+  },
+  "typography": {
+    "strategy": "Swiss Brutalist",
+    "fonts": {
+      "headings": {
+        "family": "Satoshi",
+        "fallback": "sans-serif",
+        "weights": ["700", "900"],
+        "usage": "H1-H4, dashboard metric labels, module titles"
+      },
+      "body": {
+        "family": "Inter",
+        "fallback": "sans-serif",
+        "weights": ["400", "500"],
+        "usage": "General body copy, paragraphs, descriptions"
+      },
+      "data_and_code": {
+        "family": "IBM Plex Mono",
+        "fallback": "monospace",
+        "weights": ["400", "500"],
+        "usage": "Project codes, statistics, numerical data in tables, Excel upload details"
+      }
+    },
+    "hierarchy": {
+      "h1": "text-4xl tracking-tight font-bold",
+      "h2": "text-2xl tracking-tight font-bold",
+      "h3": "text-lg tracking-tight font-semibold",
+      "metric_value": "text-4xl font-black tracking-tighter",
+      "label": "text-xs uppercase tracking-[0.2em] font-semibold text-slate-500",
+      "body": "text-sm leading-relaxed"
+    }
+  },
+  "colors": {
+    "background": {
+      "sidebar": "#0A0A0A",
+      "content": "#F8F9FA",
+      "card": "#FFFFFF"
+    },
+    "text": {
+      "primary_dark_bg": "#FAFAFA",
+      "secondary_dark_bg": "#A3A3A3",
+      "primary_light_bg": "#0F172A",
+      "secondary_light_bg": "#475569"
+    },
+    "brand_accents": {
+      "primary": "#0F172A",
+      "action": "#2563EB",
+      "action_hover": "#1D4ED8"
+    },
+    "semantic": {
+      "clash_danger": "#DC2626",
+      "clash_danger_bg": "#FEF2F2",
+      "warning": "#F59E0B",
+      "success": "#10B981"
+    },
+    "borders": {
+      "light": "#E2E8F0",
+      "dark": "#262626"
+    }
+  },
+  "layout_and_spacing": {
+    "grid_system": "The 'Control Room' Grid",
+    "structure": {
+      "sidebar": "Fixed width 256px (w-64), h-screen, fixed positioning, flex col.",
+      "content_area": "ml-64 min-h-screen bg-slate-50 p-8",
+      "footer": "py-4 text-center text-xs text-slate-400 border-t border-slate-200 mt-12"
+    },
+    "spacing_scale": {
+      "card_padding": "p-6",
+      "section_gap": "gap-8",
+      "dense_data_gap": "gap-4"
+    },
+    "specific_pages": {
+      "dashboard": "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 for metric cards. Use cardless sharp design (rounded-md max) with 1px border.",
+      "master_calendar": "Strict 7-column grid (grid-cols-7). Dense border-collapse style. Gapless borders. Clashes indicated by 2px solid #DC2626 border and absolute positioned red tags.",
+      "programs": "Bento grid mode. grid-cols-1 md:grid-cols-2 lg:grid-cols-3. gap-6. Heights must stretch identically.",
+      "mentor_sow": "Dense tabular layout. Table spanning full width. Sticky headers."
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-slate-900 text-white hover:bg-slate-800 rounded-md px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-slate-400 focus:ring-offset-2",
+      "danger": "bg-red-600 text-white hover:bg-red-700 rounded-md px-4 py-2 text-sm font-medium transition-colors"
+    },
+    "cards": {
+      "style": "bg-white border border-slate-200 rounded-md shadow-sm. No extreme box-shadows. Flat and crisp.",
+      "clash_card": "border-red-500 bg-red-50/50. Red text for metrics."
+    },
+    "inputs": {
+      "style": "border border-slate-300 rounded-md bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+    },
+    "sidebar_nav": {
+      "style": "flex items-center gap-3 px-4 py-2.5 rounded-md text-sm font-medium transition-colors",
+      "active": "bg-white/10 text-white",
+      "inactive": "text-slate-400 hover:text-white hover:bg-white/5"
+    },
+    "toast_notifications": {
+      "library": "sonner",
+      "usage": "Use for File Upload success/warning/error states, and CRUD operations."
+    }
+  },
+  "micro_interactions": {
+    "hover_states": "All interactive elements must visibly change (darken/lighten background, transform -translate-y-[1px]).",
+    "clash_animation": "Subtle pulse on the red clash notification badge to draw operator attention without overwhelming."
+  },
+  "testing": {
+    "data_testid_rules": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case, role-based. e.g., data-testid='upload-attendance-btn', data-testid='clash-metric-card', data-testid='sidebar-nav-dashboard'."
+  },
+  "media_urls": {
+    "logo": {
+      "url": "https://images.pexels.com/photos/5477692/pexels-photo-5477692.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Minimalist ampersand symbol used as EdTech Ops Hub conceptual logo",
+      "usage": "Sidebar top header"
+    },
+    "avatars": [
+      {
+        "url": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHw0fHxwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdCUyMGhlYWRzaG90fGVufDB8fHx8MTc4MDMzNjg2NHww&ixlib=rb-4.1.0&q=85",
+        "description": "Smiling professional woman"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MDV8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdCUyMGhlYWRzaG90fGVufDB8fHx8MTc4MDMzNjg2NHww&ixlib=rb-4.1.0&q=85",
+        "description": "Man wearing Henley top"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Use Shadcn UI (.js files only) for standardized inputs, tables, tabs, and modals.",
+    "Implement the Layout strictly: dark fixed sidebar w-64, light right content area with standard spacing (p-8).",
+    "Dashboard must highlight 'Clashes Detected' dynamically in red if value > 0.",
+    "Master Calendar must be built as a dense 7-column CSS Grid. Avoid generic calendar plugins if they don't support custom colored blocks and red clash borders.",
+    "Apply IBM Plex Mono to any schedule codes, session numbers, and financial data in SOW tables.",
+    "Footer must be present on all pages exactly as: 'Engineered by Arya Ghai'.",
+    "Integrate Lucide React for sidebar and action icons.",
+    "Always apply data-testid to critical workflow elements (upload buttons, metric cards, table rows)."
+  ]
+}
