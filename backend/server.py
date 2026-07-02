@@ -5,8 +5,8 @@ from typing import List, Optional
 from urllib.parse import quote
 
 from fastapi import FastAPI, APIRouter, UploadFile, File, Form, HTTPException, Request, Response, Depends, Body
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from starlette.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 import io
@@ -738,14 +738,18 @@ async def root():
 
 app.include_router(api)
 
-_cors = [o.strip() for o in os.environ.get("CORS_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8001",
+    ],
     allow_credentials=True,
-    allow_origins=_cors,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
-    expose_headers=["Content-Disposition", "X-Process-Info", "X-Output-Filename"],
+    expose_headers=["*"],
 )
 
 

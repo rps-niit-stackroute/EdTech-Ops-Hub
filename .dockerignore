@@ -1,0 +1,64 @@
+# Git and editor metadata
+.git
+.gitignore
+.vscode
+.idea
+
+# Environment files
+.env
+.env.*
+*.env
+backend/.env
+backend/.env.*
+!frontend/.env
+
+# Node / frontend artifacts
+node_modules/
+frontend/node_modules
+frontend/build
+frontend/dist
+frontend/coverage
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+# Python / backend artifacts
+__pycache__/
+backend/__pycache__/
+backend/**/*.py[cod]
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.venv/
+backend/venv/
+backend/.python-version
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+.DS_Store
+
+# OS / packaging
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Docker files
+Dockerfile*
+docker-compose*.yml
+
+# Build caches
+.cache/
+coverage/
+
+# Local secrets and credentials
+*.pem
+*.key
+*.crt
+*.p12
