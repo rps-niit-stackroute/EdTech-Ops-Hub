@@ -169,26 +169,6 @@ http://localhost:8001/docs
 
 ---
 
-## Docker Architecture
-┌─────────────────────────────────────────┐
-│           Docker Compose                │
-│                                         │
-│  ┌─────────────┐  ┌─────────────────┐  │
-│  │  Frontend   │  │    Backend      │  │
-│  │  React+Nginx│  │  FastAPI+Uvicorn│  │
-│  │  Port 3000  │  │   Port 8001     │  │
-│  └──────┬──────┘  └────────┬────────┘  │
-│         │                  │            │
-│         └────────┬─────────┘            │
-│                  │                      │
-│          ┌───────▼──────┐              │
-│          │   MongoDB 7  │              │
-│          │  Port 27017  │              │
-│          └──────────────┘              │
-└─────────────────────────────────────────┘
-
----
-
 ## AWS Deployment
 
 For AWS deployment refer to `DEPLOYMENT.md` in this repository which covers:
