@@ -66,40 +66,7 @@ workflows with an automated, web-based system.
 
 ---
 
-## Project Structure
-EdTech-Ops-Hub/
-├── frontend/                    # React TypeScript frontend
-│   ├── src/
-│   │   ├── components/          # Reusable UI components
-│   │   ├── pages/               # Page components (Dashboard, Attendance, etc.)
-│   │   └── App.tsx              # Main app with routing
-│   ├── public/
-│   ├── package.json
-│   ├── craco.config.js
-│   ├── tailwind.config.js
-│   ├── .env                     # Frontend environment variables (not committed)
-│   └── .env.example             # Template for environment variables
-│
-├── backend/                     # FastAPI Python backend
-│   ├── server.py                # Main app, all API routes
-│   ├── auth.py                  # JWT authentication
-│   ├── db.py                    # MongoDB connection and seeding
-│   ├── audit.py                 # Audit logging
-│   ├── logic.py                 # Health and availability logic
-│   ├── backup.py                # Backup ZIP generation
-│   ├── attendance_processor.py  # Excel attendance processing
-│   ├── schedule_parser.py       # Schedule Excel parsing
-│   ├── sow_export.py            # SOW Excel generation
-│   ├── excel_utils.py           # Shared Excel utilities
-│   ├── requirements.txt         # Python dependencies
-│   ├── .env                     # Backend environment variables (not committed)
-│   └── .env.example             # Template for environment variables
-│
-├── Dockerfile.frontend          # Docker build for React app
-├── Dockerfile.backend           # Docker build for FastAPI app
-├── docker-compose.yml           # Orchestrates all three containers
-├── .dockerignore                # Files excluded from Docker builds
-└── README.md                    # This file
+<img width="2720" height="3920" alt="edtech_ops_hub_project_structure" src="https://github.com/user-attachments/assets/d33a524b-5906-47f6-a81d-c8bd436b1cca" />
 
 
 ---
