@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Loader2, Lock } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 
 export default function Login({ viewer = false }) {
   const [username, setUsername] = useState("");
@@ -21,7 +21,7 @@ export default function Login({ viewer = false }) {
       const u = await login(username, password, viewer);
       toast.success(`Welcome, ${u.name}`);
       if (u.must_change_password) nav("/change-password");
-      else nav(viewer ? "/" : "/");
+      else nav("/");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Login failed");
     } finally {
@@ -33,10 +33,10 @@ export default function Login({ viewer = false }) {
     <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-blue-600">
-            <GraduationCap className="h-7 w-7 text-white" />
+          <div className="mx-auto mb-4 flex h-14 items-center justify-center rounded-xl bg-white px-3 py-2.5">
+            <img src="/stackroute-rps-logo.png" alt="StackRoute | RPS" className="h-full w-auto object-contain" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-white">EdTech Ops Hub</h1>
+          <h1 className="font-display text-2xl font-bold text-white">Delivery Automation</h1>
           <p className="mt-1 text-sm text-slate-400">
             {viewer ? "Stakeholder / Viewer access" : "Sign in to your workspace"}
           </p>
@@ -78,11 +78,7 @@ export default function Login({ viewer = false }) {
             {viewer ? (
               <Link to="/login" className="hover:text-slate-300">← Team / Admin login</Link>
             ) : (
-              <>
-                <Link to="/" className="hover:text-slate-300">Continue without login →</Link>
-                <span className="mx-2">·</span>
-                <Link to="/viewer" className="hover:text-slate-300">Viewer login</Link>
-              </>
+              <Link to="/viewer" className="hover:text-slate-300">Viewer login →</Link>
             )}
           </div>
         </form>

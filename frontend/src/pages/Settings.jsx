@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { api, API } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
@@ -8,7 +8,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -20,7 +19,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
-  Database, Download, UserPlus, Trash2, Loader2, Clock, ShieldCheck, Users as UsersIcon,
+  Database, Download, UserPlus, Trash2, Loader2, Clock, Users as UsersIcon,
 } from "lucide-react";
 
 const ROLES = [
@@ -40,7 +39,7 @@ export default function Settings() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && (!user || user.role !== "admin")) nav("/");
+    if (!authLoading && user?.role !== "admin") nav("/");
   }, [authLoading, user, nav]);
 
   const load = useCallback(() => {
@@ -49,7 +48,7 @@ export default function Settings() {
   }, []);
   useEffect(() => { if (user?.role === "admin") load(); }, [load, user]);
 
-  if (!user || user.role !== "admin") return null;
+  if (user?.role !== "admin") return null;
 
   const downloadBackup = async () => {
     setDownloading(true);
@@ -64,7 +63,8 @@ export default function Settings() {
       URL.revokeObjectURL(url);
       toast.success("Backup downloaded");
       load();
-    } catch (e) {
+    } catch (err) {
+      console.error("Backup download failed", err);
       toast.error("Backup failed");
     } finally {
       setDownloading(false);
@@ -102,7 +102,8 @@ export default function Settings() {
       await api.put(`/users/${id}`, { role });
       toast.success("Role updated");
       load();
-    } catch (e) {
+    } catch (err) {
+      console.error("Failed to update user role", err);
       toast.error("Failed to update role");
     }
   };

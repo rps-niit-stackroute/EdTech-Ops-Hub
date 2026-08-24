@@ -1,0 +1,16 @@
+[run]
+branch = True
+source = .
+omit =
+    tests/*
+    */site-packages/*
+
+[report]
+precision = 1
+show_missing = True
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+
+[xml]
+output = coverage.xml

@@ -7,8 +7,14 @@ const STYLES = {
   red: { bg: "bg-red-100", text: "text-red-700", dot: "bg-red-500", label: "Critical" },
 };
 
+function barColor(value) {
+  if (value >= 75) return "bg-emerald-500";
+  if (value >= 50) return "bg-amber-500";
+  return "bg-red-500";
+}
+
 function Bar({ label, value }) {
-  const color = value >= 75 ? "bg-emerald-500" : value >= 50 ? "bg-amber-500" : "bg-red-500";
+  const color = barColor(value);
   return (
     <div>
       <div className="mb-1 flex justify-between text-xs">

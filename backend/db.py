@@ -15,6 +15,7 @@ db = client[os.environ["DB_NAME"]]
 
 programs_col = db["programs"]
 sessions_col = db["sessions"]
+mentors_col = db["mentors"]
 
 
 def new_id():
@@ -23,6 +24,10 @@ def new_id():
 
 def now_iso():
     return datetime.now(timezone.utc).isoformat()
+
+
+_SEED_MENTOR_MANOJ = "Manoj Ajmer"
+_SEED_MENTOR_ASHISH = "Ashish Juyal"
 
 
 async def seed_if_empty():
@@ -37,18 +42,18 @@ async def seed_if_empty():
         {
             "name": "CTS - CNA Level 1", "client": "CTS",
             "project_code": "S01518-SMP001ISDL001N001", "team_member": "Santosh",
-            "mentors": ["Manoj Ajmer"],
+            "mentors": [_SEED_MENTOR_MANOJ],
             "att_pct": 92.0, "attn_pct": 86.0,
             "sessions": [
                 {"date": d(0), "start_time": "09:30", "end_time": "12:00",
-                 "topic": "Architecture Concepts, Techniques and Tools", "mentor_name": "Manoj Ajmer"},
+                 "topic": "Architecture Concepts, Techniques and Tools", "mentor_name": _SEED_MENTOR_MANOJ},
                 # clash: same mentor, same day, overlapping window
                 {"date": d(0), "start_time": "11:00", "end_time": "13:00",
-                 "topic": "Applying Design Thinking", "mentor_name": "Manoj Ajmer"},
+                 "topic": "Applying Design Thinking", "mentor_name": _SEED_MENTOR_MANOJ},
                 {"date": d(3), "start_time": "09:30", "end_time": "12:00",
-                 "topic": "Architecture Patterns", "mentor_name": "Manoj Ajmer"},
+                 "topic": "Architecture Patterns", "mentor_name": _SEED_MENTOR_MANOJ},
                 {"date": d(9), "start_time": "09:30", "end_time": "12:00",
-                 "topic": "GenAI and Prompt Engg for Architects", "mentor_name": "Manoj Ajmer"},
+                 "topic": "GenAI and Prompt Engg for Architects", "mentor_name": _SEED_MENTOR_MANOJ},
             ],
         },
         {
@@ -68,13 +73,13 @@ async def seed_if_empty():
         {
             "name": "UST - Aspiring Architect Batch 5", "client": "UST",
             "project_code": "S01128-SMP001ISDL001N001", "team_member": "Santosh",
-            "mentors": ["Ashish Juyal"],
+            "mentors": [_SEED_MENTOR_ASHISH],
             "att_pct": 89.0, "attn_pct": 82.0,
             "sessions": [
                 {"date": d(2), "start_time": "10:00", "end_time": "12:30",
-                 "topic": "Solution Architecture Foundations", "mentor_name": "Ashish Juyal"},
+                 "topic": "Solution Architecture Foundations", "mentor_name": _SEED_MENTOR_ASHISH},
                 {"date": d(6), "start_time": "10:00", "end_time": "12:30",
-                 "topic": "Microservices & Patterns", "mentor_name": "Ashish Juyal"},
+                 "topic": "Microservices & Patterns", "mentor_name": _SEED_MENTOR_ASHISH},
             ],
         },
         {

@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "@/context/ThemeContext";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
@@ -7,11 +8,13 @@ import {
   CalendarDays,
   FolderKanban,
   ReceiptText,
-  GraduationCap,
+  HelpCircle,
   ScrollText,
   Settings as SettingsIcon,
   LogOut,
   LogIn,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 const NAV = [
@@ -20,6 +23,7 @@ const NAV = [
   { to: "/calendar", label: "Calendar", icon: CalendarDays, id: "calendar" },
   { to: "/programs", label: "Programs", icon: FolderKanban, id: "programs" },
   { to: "/sow", label: "Mentor SOW", icon: ReceiptText, id: "sow" },
+  { to: "/help", label: "Help & Guidelines", icon: HelpCircle, id: "help" },
 ];
 
 const ADMIN_NAV = [
@@ -29,6 +33,7 @@ const ADMIN_NAV = [
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const nav = useNavigate();
   const isAdmin = user?.role === "admin";
 
@@ -64,11 +69,11 @@ export default function Sidebar() {
   return (
     <aside data-testid="sidebar" className="fixed left-0 top-0 z-30 flex h-screen w-64 flex-col bg-[#0A0A0A] text-white">
       <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
-        <div className="flex h-10 w-10 items-center justify-center rounded-md bg-blue-600">
-          <GraduationCap className="h-5 w-5 text-white" />
+        <div className="flex h-10 items-center justify-center rounded-md bg-white px-2 py-1.5">
+          <img src="/stackroute-rps-logo.png" alt="StackRoute | RPS" className="h-full w-auto object-contain" />
         </div>
         <div className="leading-tight">
-          <div className="font-display text-base font-bold tracking-tight">EdTech Ops Hub</div>
+          <div className="font-display text-base font-bold tracking-tight">Delivery Automation</div>
           <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">NIIT StackRoute</div>
         </div>
       </div>
@@ -85,6 +90,14 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-white/10 px-4 py-4">
+        <button
+          onClick={toggleTheme}
+          data-testid="theme-toggle-btn"
+          className="mb-3 flex w-full items-center gap-2 rounded-md border border-white/10 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-white/5 hover:text-white"
+        >
+          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          {theme === "dark" ? "Light mode" : "Dark mode"}
+        </button>
         {user ? (
           <div className="mb-3 flex items-center gap-2.5" data-testid="sidebar-user">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-bold uppercase">

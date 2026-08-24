@@ -18,6 +18,14 @@ node_modules/
 
 # Testing
 /coverage
+frontend/coverage/
+backend/.coverage
+backend/coverage.xml
+backend/htmlcov/
+backend/.pytest_cache/
+.pytest_cache/
+backend/.venv312/
+.scannerwork/
 
 # Next.js
 /.next/

@@ -6,7 +6,7 @@ from datetime import datetime
 
 from db import db, programs_col, sessions_col
 from audit import audit_csv_bytes
-from logic import attendance_records_col, sow_records_col
+from logic import attendance_records_col, sow_records_col, sow_snapshots_col
 
 users_col = db["users"]
 
@@ -33,6 +33,7 @@ async def build_backup(admin_name):
     sessions = await _all(sessions_col)
     attendance = await _all(attendance_records_col)
     sow_records = await _all(sow_records_col)
+    sow_snapshots = await _all(sow_snapshots_col)
     users = await _all(users_col, exclude_sensitive=True)
     audit_bytes = await audit_csv_bytes()
 
@@ -42,6 +43,7 @@ async def build_backup(admin_name):
         "sessions": sessions,
         "attendance_records": attendance,
         "sow_records": sow_records,
+        "sow_snapshots": sow_snapshots,
         "users": users,
     }
 
@@ -50,7 +52,7 @@ async def build_backup(admin_name):
         indent=2, default=str)
 
     info = (
-        f"EdTech Ops Hub — Full Backup\n"
+        f"Delivery Automation — Full Backup\n"
         f"Date of backup : {now.strftime('%d %b %Y, %H:%M:%S')}\n"
         f"Total programs : {len(programs)}\n"
         f"Total sessions : {len(sessions)}\n"
@@ -65,6 +67,7 @@ async def build_backup(admin_name):
         z.writestr("attendance_records.json", json.dumps(attendance, indent=2, default=str))
         z.writestr("audit_log.csv", audit_bytes)
         z.writestr("sow_records.json", json.dumps(sow_records, indent=2, default=str))
+        z.writestr("sow_snapshots.json", json.dumps(sow_snapshots, indent=2, default=str))
         z.writestr("backup_info.txt", info)
     buf.seek(0)
 

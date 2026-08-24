@@ -4,18 +4,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 
+function selectionLabel(selected, placeholder) {
+  if (selected.length === 0) return placeholder;
+  if (selected.length === 1) return selected[0];
+  return `${selected.length} selected`;
+}
+
 export default function MultiSelect({ options, selected, onChange, placeholder = "Select...", testid }) {
   const [open, setOpen] = React.useState(false);
   const toggle = (val) => {
     if (selected.includes(val)) onChange(selected.filter((s) => s !== val));
     else onChange([...selected, val]);
   };
-  const label =
-    selected.length === 0
-      ? placeholder
-      : selected.length === 1
-      ? selected[0]
-      : `${selected.length} selected`;
+  const label = selectionLabel(selected, placeholder);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

@@ -6,7 +6,7 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
+  --background: 210 20% 98%;
   --foreground: 222 47% 11%;
   --card: 0 0% 100%;
   --card-foreground: 222 47% 11%;
@@ -28,6 +28,33 @@
   --radius: 0.5rem;
 }
 
+.dark {
+  --background: 222 47% 9%;
+  --foreground: 210 40% 96%;
+  --card: 222 40% 13%;
+  --card-foreground: 210 40% 96%;
+  --popover: 222 44% 11%;
+  --popover-foreground: 210 40% 96%;
+  /* Every button in this app overrides bg-primary with a hardcoded dark
+     color (bg-slate-900, bg-red-600, ...) rather than using the default
+     variant — so text-primary-foreground needs to stay light here too,
+     not follow shadcn's usual dark-mode inversion, or button text goes
+     dark-on-dark and disappears. */
+  --primary: 210 40% 96%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 217 33% 18%;
+  --secondary-foreground: 210 40% 96%;
+  --muted: 217 33% 18%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 20%;
+  --accent-foreground: 210 40% 96%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 96%;
+  --border: 217 33% 22%;
+  --input: 217 33% 22%;
+  --ring: 213 27% 74%;
+}
+
 * {
   border-color: hsl(var(--border));
 }
@@ -37,9 +64,58 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8f9fa;
+  background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+  transition: background-color 0.15s ease;
 }
+
+/* The rest of the app (Dashboard, Attendance, Calendar, Programs, SOW, Help,
+   Audit Log, Settings) was built with hardcoded slate/white Tailwind utility
+   classes rather than the semantic bg-card/text-foreground tokens above.
+   Remapping those specific classes here — scoped to the workspace content
+   only — re-themes every existing page without having to touch each one.
+   The sidebar and login screen are deliberately excluded: they're fixed
+   dark brand chrome, not something the toggle should touch. */
+.dark .app-content .bg-white { background-color: hsl(var(--card)); }
+.dark .app-content .bg-slate-50,
+.dark .app-content .bg-slate-50\/50 { background-color: hsl(var(--muted)); }
+.dark .app-content .bg-slate-100 { background-color: hsl(217 33% 24%); }
+.dark .app-content .border-slate-100,
+.dark .app-content .border-slate-200 { border-color: hsl(var(--border)); }
+.dark .app-content .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .app-content .divide-slate-200 > :not([hidden]) ~ :not([hidden]) { border-color: hsl(var(--border)); }
+.dark .app-content .text-slate-900 { color: hsl(210 40% 98%); }
+.dark .app-content .text-slate-800 { color: hsl(210 30% 92%); }
+.dark .app-content .text-slate-700 { color: hsl(210 20% 85%); }
+.dark .app-content .text-slate-600 { color: hsl(215 20% 70%); }
+.dark .app-content .text-slate-500 { color: hsl(215 16% 60%); }
+.dark .app-content .text-slate-400 { color: hsl(215 14% 50%); }
+
+/* Pale semantic alert/callout backgrounds (danger/warning/info cards) assume a
+   light page behind them — at full or partial opacity they turn muddy on a
+   dark page instead of just going unreadable, so they need their own values
+   rather than simply being left alone. */
+.dark .app-content .bg-red-50,
+.dark .app-content .bg-red-50\/40,
+.dark .app-content .bg-red-50\/50,
+.dark .app-content .bg-red-50\/60 { background-color: hsl(0 45% 18%); }
+.dark .app-content .bg-amber-50 { background-color: hsl(38 45% 16%); }
+.dark .app-content .bg-emerald-50 { background-color: hsl(160 40% 14%); }
+.dark .app-content .bg-blue-50,
+.dark .app-content .bg-blue-50\/50 { background-color: hsl(213 45% 16%); }
+.dark .app-content .text-red-600,
+.dark .app-content .text-red-700 { color: hsl(0 91% 75%); }
+.dark .app-content .text-amber-700,
+.dark .app-content .text-amber-800 { color: hsl(38 92% 68%); }
+.dark .app-content .text-emerald-600,
+.dark .app-content .text-emerald-700 { color: hsl(160 84% 62%); }
+.dark .app-content .text-blue-600,
+.dark .app-content .text-blue-700 { color: hsl(213 94% 72%); }
+.dark .app-content .border-red-200,
+.dark .app-content .border-red-300 { border-color: hsl(0 40% 30%); }
+.dark .app-content .border-amber-200,
+.dark .app-content .border-amber-300 { border-color: hsl(38 40% 28%); }
+.dark .app-content .border-green-200 { border-color: hsl(142 30% 26%); }
 
 .font-display {
   font-family: 'Satoshi', 'Inter', sans-serif;
@@ -68,6 +144,8 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
 ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.dark ::-webkit-scrollbar-thumb { background: #475569; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
 .fade-in { animation: fadeIn 0.35s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }

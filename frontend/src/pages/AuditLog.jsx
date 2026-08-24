@@ -15,6 +15,48 @@ import { Loader2, Download, ScrollText, Filter } from "lucide-react";
 
 const ALL = "__all__";
 
+function AuditLogBody({ loading, rows }) {
+  if (loading) {
+    return <div className="flex h-48 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>;
+  }
+  if (rows.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <ScrollText className="mb-3 h-9 w-9 text-slate-300" />
+        <p className="text-sm text-slate-400">No audit entries match these filters.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-slate-900 text-left text-xs uppercase tracking-wider text-white">
+            <th className="px-4 py-2.5">Timestamp</th>
+            <th className="px-4 py-2.5">User</th>
+            <th className="px-4 py-2.5">Role</th>
+            <th className="px-4 py-2.5">Action</th>
+            <th className="px-4 py-2.5">Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-b border-slate-100" data-testid="audit-row">
+              <td className="whitespace-nowrap px-4 py-2 font-mono-data text-xs text-slate-500">
+                {dayjs(r.timestamp).format("DD MMM YY, HH:mm:ss")}
+              </td>
+              <td className="px-4 py-2 font-medium text-slate-800">{r.user_name}</td>
+              <td className="px-4 py-2"><Badge variant="secondary" className="text-[10px]">{r.role}</Badge></td>
+              <td className="px-4 py-2 text-slate-700">{r.action}</td>
+              <td className="px-4 py-2 text-xs text-slate-500">{r.details}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function AuditLog() {
   const { user, loading: authLoading } = useAuth();
   const nav = useNavigate();
@@ -26,7 +68,7 @@ export default function AuditLog() {
   const [fTo, setFTo] = useState("");
 
   useEffect(() => {
-    if (!authLoading && (!user || user.role !== "admin")) nav("/");
+    if (!authLoading && user?.role !== "admin") nav("/");
   }, [authLoading, user, nav]);
 
   const load = useCallback(() => {
@@ -41,7 +83,7 @@ export default function AuditLog() {
 
   useEffect(() => { if (user?.role === "admin") load(); }, [load, user]);
 
-  if (!user || user.role !== "admin") return null;
+  if (user?.role !== "admin") return null;
 
   return (
     <div data-testid="audit-page">
@@ -90,41 +132,7 @@ export default function AuditLog() {
       </Card>
 
       <Card className="overflow-hidden rounded-md border-slate-200">
-        {loading ? (
-          <div className="flex h-48 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-slate-400" /></div>
-        ) : data.rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <ScrollText className="mb-3 h-9 w-9 text-slate-300" />
-            <p className="text-sm text-slate-400">No audit entries match these filters.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-900 text-left text-xs uppercase tracking-wider text-white">
-                  <th className="px-4 py-2.5">Timestamp</th>
-                  <th className="px-4 py-2.5">User</th>
-                  <th className="px-4 py-2.5">Role</th>
-                  <th className="px-4 py-2.5">Action</th>
-                  <th className="px-4 py-2.5">Details</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100" data-testid="audit-row">
-                    <td className="whitespace-nowrap px-4 py-2 font-mono-data text-xs text-slate-500">
-                      {dayjs(r.timestamp).format("DD MMM YY, HH:mm:ss")}
-                    </td>
-                    <td className="px-4 py-2 font-medium text-slate-800">{r.user_name}</td>
-                    <td className="px-4 py-2"><Badge variant="secondary" className="text-[10px]">{r.role}</Badge></td>
-                    <td className="px-4 py-2 text-slate-700">{r.action}</td>
-                    <td className="px-4 py-2 text-xs text-slate-500">{r.details}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <AuditLogBody loading={loading} rows={data.rows} />
       </Card>
     </div>
   );
