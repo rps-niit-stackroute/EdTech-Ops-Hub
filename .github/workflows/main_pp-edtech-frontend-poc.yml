@@ -14,12 +14,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install & build
+      - name: Install and build
         working-directory: frontend
         run: |
           npm install
           npm run build
-        env: false
+        env:
+          CI: false
           REACT_APP_BACKEND_URL: ${{ vars.REACT_APP_BACKEND_URL }}
       - uses: actions/upload-artifact@v4
         with:
@@ -36,12 +37,15 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: react-app
-      - uses: azure/login@v2
+      - name: Login to Azure
+        uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_CFC59F5D46824511BD5277352988D3DB }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_EEA83F1923994F4FA44BB3284524FE96 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_0C5AFD5C75994D1384FBB1A04A1DBFC1 }}
-      - uses: azure/webapps-deploy@v3
+      - name: 'Deploy to Azure Web App'
+        uses: azure/webapps-deploy@v3
         with:
-          app-name: pp-edtech-frontend-poc
+          app-name: 'pp-edtech-frontend-poc'
+          slot-name: 'Production'
           package: .
