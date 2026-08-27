@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
-import Footer from "@/components/Footer";
 import RequireAuth from "@/components/RequireAuth";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/context/AuthContext";
@@ -23,7 +22,6 @@ function Shell({ children }) {
       <main className="app-content ml-64 min-h-screen">
         <div className="mx-auto max-w-7xl px-8 py-8">
           <div className="fade-in">{children}</div>
-          <Footer />
         </div>
       </main>
     </div>

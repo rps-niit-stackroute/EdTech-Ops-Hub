@@ -82,7 +82,6 @@ export default function Login({ viewer = false }) {
             )}
           </div>
         </form>
-        <p className="mt-6 text-center text-xs text-slate-600">Engineered by Arya Ghai</p>
       </div>
     </div>
   );

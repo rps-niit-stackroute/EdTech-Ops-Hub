@@ -126,9 +126,6 @@ export default function Sidebar() {
             <LogIn className="h-4 w-4" /> Login
           </button>
         )}
-        <div className="text-center text-[11px] text-slate-500">
-          Engineered by <span className="text-slate-400">Arya Ghai</span>
-        </div>
       </div>
     </aside>
   );
