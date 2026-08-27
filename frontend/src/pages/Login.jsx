@@ -33,8 +33,8 @@ export default function Login({ viewer = false }) {
     <div className="flex min-h-screen items-center justify-center bg-[#0A0A0A] px-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 items-center justify-center rounded-xl bg-white px-3 py-2.5">
-            <img src="/stackroute-rps-logo.png" alt="StackRoute | RPS" className="h-full w-auto object-contain" />
+          <div className="mx-auto mb-4 flex h-14 items-center justify-center overflow-hidden rounded-xl">
+            <img src="/niit-enterprise-logo.png" alt="NIIT Enterprise" className="h-full w-auto object-contain" />
           </div>
           <h1 className="font-display text-2xl font-bold text-white">Delivery Automation</h1>
           <p className="mt-1 text-sm text-slate-400">

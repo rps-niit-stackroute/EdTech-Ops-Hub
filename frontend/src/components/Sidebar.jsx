@@ -69,8 +69,8 @@ export default function Sidebar() {
   return (
     <aside data-testid="sidebar" className="fixed left-0 top-0 z-30 flex h-screen w-64 flex-col bg-[#0A0A0A] text-white">
       <div className="flex items-center gap-3 px-6 py-6 border-b border-white/10">
-        <div className="flex h-10 items-center justify-center rounded-md bg-white px-2 py-1.5">
-          <img src="/stackroute-rps-logo.png" alt="StackRoute | RPS" className="h-full w-auto object-contain" />
+        <div className="flex h-10 items-center justify-center overflow-hidden rounded-md">
+          <img src="/niit-enterprise-logo.png" alt="NIIT Enterprise" className="h-full w-auto object-contain" />
         </div>
         <div className="leading-tight">
           <div className="font-display text-base font-bold tracking-tight">Delivery Automation</div>
