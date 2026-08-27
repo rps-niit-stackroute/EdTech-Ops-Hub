@@ -24,7 +24,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Plus, Pencil, Trash2, X, Loader2, Users, Hash, Building2, FolderKanban,
   Upload, Save, CalendarPlus, CheckCircle2, AlertTriangle, SkipForward, Archive, RotateCcw,
-  UserPlus, CalendarOff,
+  UserPlus, CalendarOff, Ban,
 } from "lucide-react";
 
 // Live mentor availability hook for a single session draft
@@ -69,29 +69,51 @@ function AvailabilityHint({ state }) {
   return null;
 }
 
-function SessionRow({ s, onChange, onSave, onDelete, mentors }) {
-  const avail = useAvailability(s.mentor_name, s.date, s.start_time, s.end_time, s.id);
+function SessionRow({ s, onChange, onSave, onDelete, onToggleCancel, mentors }) {
+  const isCancelled = s.status === "cancelled";
+  const avail = useAvailability(
+    isCancelled ? "" : s.mentor_name, s.date, s.start_time, s.end_time, s.id
+  );
   const blocked = avail.status === "conflict";
   return (
-    <div className="rounded-md border border-slate-200 p-3" data-testid="session-row">
+    <div
+      className={`rounded-md border p-3 ${isCancelled ? "border-slate-200 bg-slate-50 opacity-70" : "border-slate-200"}`}
+      data-testid="session-row"
+    >
+      {isCancelled && (
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-red-600" data-testid="session-cancelled-badge">
+          <Ban className="h-3.5 w-3.5" /> Cancelled — hidden from the calendar and SOW
+        </div>
+      )}
       <div className="grid grid-cols-12 gap-2">
-        <Input type="date" className="col-span-4 h-8 text-xs" value={s.date} onChange={(e) => onChange({ date: e.target.value })} />
-        <Input type="time" className="col-span-4 h-8 text-xs" value={s.start_time} onChange={(e) => onChange({ start_time: e.target.value })} />
-        <Input type="time" className="col-span-4 h-8 text-xs" value={s.end_time} onChange={(e) => onChange({ end_time: e.target.value })} />
-        <Input className="col-span-7 h-8 text-xs" placeholder="Topic" value={s.topic || ""} onChange={(e) => onChange({ topic: e.target.value })} />
+        <Input type="date" className="col-span-4 h-8 text-xs" value={s.date} disabled={isCancelled} onChange={(e) => onChange({ date: e.target.value })} />
+        <Input type="time" className="col-span-4 h-8 text-xs" value={s.start_time} disabled={isCancelled} onChange={(e) => onChange({ start_time: e.target.value })} />
+        <Input type="time" className="col-span-4 h-8 text-xs" value={s.end_time} disabled={isCancelled} onChange={(e) => onChange({ end_time: e.target.value })} />
+        <Input className="col-span-7 h-8 text-xs" placeholder="Topic" value={s.topic || ""} disabled={isCancelled} onChange={(e) => onChange({ topic: e.target.value })} />
         <div className="col-span-5">
-          <MentorInput className="h-8 text-xs" value={s.mentor_name || ""} onChange={(v) => onChange({ mentor_name: v })} mentors={mentors} testid="session-mentor-input" />
+          <MentorInput className="h-8 text-xs" value={s.mentor_name || ""} onChange={(v) => onChange({ mentor_name: v })} mentors={mentors} disabled={isCancelled} testid="session-mentor-input" />
         </div>
       </div>
       <div className="mt-2 flex items-center justify-between gap-2">
-        <AvailabilityHint state={avail} />
+        {isCancelled ? <span className="text-xs text-slate-400">Restore it to edit again</span> : <AvailabilityHint state={avail} />}
         <div className="flex gap-2">
-          <Button size="sm" variant="ghost" className="h-7 text-xs text-red-500 hover:text-red-600" onClick={onDelete}>
-            <Trash2 className="mr-1 h-3 w-3" /> Delete
-          </Button>
-          <Button size="sm" disabled={blocked} className="h-7 bg-slate-900 text-xs hover:bg-slate-800 disabled:opacity-50" onClick={onSave} data-testid="save-session-btn">
-            <Save className="mr-1 h-3 w-3" /> Save
-          </Button>
+          {isCancelled ? (
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onToggleCancel("scheduled")} data-testid="restore-session-btn">
+              <RotateCcw className="mr-1 h-3 w-3" /> Restore
+            </Button>
+          ) : (
+            <>
+              <Button size="sm" variant="ghost" className="h-7 text-xs text-amber-600 hover:text-amber-700" onClick={() => onToggleCancel("cancelled")} data-testid="cancel-session-btn">
+                <Ban className="mr-1 h-3 w-3" /> Cancel
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs text-red-500 hover:text-red-600" onClick={onDelete}>
+                <Trash2 className="mr-1 h-3 w-3" /> Delete
+              </Button>
+              <Button size="sm" disabled={blocked} className="h-7 bg-slate-900 text-xs hover:bg-slate-800 disabled:opacity-50" onClick={onSave} data-testid="save-session-btn">
+                <Save className="mr-1 h-3 w-3" /> Save
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -355,6 +377,16 @@ function EditDrawer({ programId, open, onOpenChange, onChanged, mentors }) {
     toast.success("Session deleted.");
     onChanged();
   };
+  const toggleSessionStatus = async (sid, status) => {
+    try {
+      const r = await api.patch(`/sessions/${sid}/status`, { status });
+      setDetail((d) => ({ ...d, sessions: d.sessions.map((s) => (s.id === sid ? r.data : s)) }));
+      toast.success(status === "cancelled" ? "Session cancelled." : "Session restored.");
+      onChanged();
+    } catch (e) {
+      toast.error(e.response?.data?.detail || "Could not update the session's status.");
+    }
+  };
   const addSession = async () => {
     try {
       const r = await api.post(`/sessions`, {
@@ -428,7 +460,14 @@ function EditDrawer({ programId, open, onOpenChange, onChanged, mentors }) {
 
             <div className="mt-6">
               <div className="mb-2 flex items-center justify-between">
-                <h3 className="label-caps">Sessions ({detail.sessions.length})</h3>
+                <h3 className="label-caps">
+                  Sessions ({detail.sessions.length})
+                  {detail.sessions.some((s) => s.status === "cancelled") && (
+                    <span className="ml-1.5 font-normal normal-case text-slate-400">
+                      · {detail.sessions.filter((s) => s.status === "cancelled").length} cancelled
+                    </span>
+                  )}
+                </h3>
                 <Button size="sm" variant="outline" onClick={addSession} data-testid="add-session-btn">
                   <CalendarPlus className="mr-1.5 h-3.5 w-3.5" /> Add
                 </Button>
@@ -446,6 +485,7 @@ function EditDrawer({ programId, open, onOpenChange, onChanged, mentors }) {
                     onChange={(patch) => updateSession(s.id, patch)}
                     onSave={() => saveSession(s)}
                     onDelete={() => deleteSession(s.id)}
+                    onToggleCancel={(status) => toggleSessionStatus(s.id, status)}
                     mentors={mentors}
                   />
                 ))}

@@ -23,6 +23,7 @@ import {
   Gauge,
   Clock,
   UserCheck,
+  Ban,
 } from "lucide-react";
 
 const ACCENT = "#2563eb";
@@ -45,6 +46,9 @@ function fmtDT(date, time) {
 }
 
 function describeChange(c) {
+  if (c.change_type === "cancelled") {
+    return `Session cancelled — was ${fmtDT(c.before?.date, c.before?.start_time)}–${c.before?.end_time || ""}`;
+  }
   if (c.change_type === "removed") {
     return `Session removed — was ${fmtDT(c.before?.date, c.before?.start_time)}–${c.before?.end_time || ""}`;
   }
@@ -147,6 +151,12 @@ export default function Dashboard() {
     : [];
   const hasHealthData = healthPieData.some((d) => d.value > 0);
 
+  // Cancellations get their own banner — they're the one schedule change that
+  // silently shrinks a SOW rather than just moving it, so they're easy to miss
+  // buried in a general list of reschedules.
+  const cancellations = changes.filter((c) => c.change_type === "cancelled");
+  const otherChanges = changes.filter((c) => c.change_type !== "cancelled");
+
   return (
     <div data-testid="dashboard-page">
       <header className="mb-8">
@@ -158,12 +168,39 @@ export default function Dashboard() {
         </p>
       </header>
 
-      {!loading && changes.length > 0 && (
+      {!loading && cancellations.length > 0 && (
+        <div className="mb-6 rounded-md border border-red-300 bg-red-50 px-4 py-3" data-testid="dashboard-cancellations">
+          <div className="flex items-center gap-2">
+            <Ban className="h-4 w-4 shrink-0 text-red-700" />
+            <span className="text-sm font-semibold text-red-900">
+              {cancellations.length} session{cancellations.length === 1 ? "" : "s"} cancelled in the last 7 days
+            </span>
+            <button
+              onClick={() => nav("/sow")}
+              className="ml-auto shrink-0 text-xs font-medium text-red-800 underline hover:text-red-900"
+            >
+              Review SOW impact
+            </button>
+          </div>
+          <ul className="mt-2 max-h-36 space-y-1 overflow-y-auto">
+            {cancellations.map((c) => (
+              <li key={c.id} className="flex items-center justify-between gap-3 text-xs" data-testid="cancellation-row">
+                <span className="min-w-0 truncate text-red-900">
+                  <span className="font-medium">{c.program_name}{c.topic ? ` — ${c.topic}` : ""}:</span> {describeChange(c)}
+                </span>
+                <span className="shrink-0 text-red-600">{timeAgo(c.changed_at)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {!loading && otherChanges.length > 0 && (
         <div className="mb-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3" data-testid="dashboard-schedule-changes">
           <div className="flex items-center gap-2">
             <History className="h-4 w-4 shrink-0 text-amber-700" />
             <span className="text-sm font-semibold text-amber-900">
-              {changes.length} schedule change{changes.length === 1 ? "" : "s"} in the last 7 days
+              {otherChanges.length} schedule change{otherChanges.length === 1 ? "" : "s"} in the last 7 days
             </span>
             <button
               onClick={() => nav("/sow")}
@@ -173,7 +210,7 @@ export default function Dashboard() {
             </button>
           </div>
           <ul className="mt-2 max-h-36 space-y-1 overflow-y-auto">
-            {changes.map((c) => (
+            {otherChanges.map((c) => (
               <li key={c.id} className="flex items-center justify-between gap-3 text-xs" data-testid="schedule-change-row">
                 <span className="min-w-0 truncate text-amber-900">
                   <span className="font-medium">{c.program_name}{c.topic ? ` — ${c.topic}` : ""}:</span> {describeChange(c)}

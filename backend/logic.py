@@ -140,7 +140,8 @@ async def check_availability(mentor_name, date_str, start_time, end_time, exclud
     a_end = time_to_minutes(end_time)
     if a_start is not None and a_end is not None:
         async for s in db["sessions"].find(
-            {"mentor_name": _mentor_name_query(mentor_name), "date": date_str}, {"_id": 0}
+            {"mentor_name": _mentor_name_query(mentor_name), "date": date_str,
+             "status": {"$ne": "cancelled"}}, {"_id": 0}
         ):
             conflict = await _conflict_for_session(s, a_start, a_end, exclude_session_id)
             if conflict:
@@ -279,7 +280,7 @@ async def record_schedule_change(program_id, program_name, session_id, topic,
         "program_name": program_name,
         "session_id": session_id,
         "topic": topic,
-        "change_type": change_type,  # "rescheduled" | "removed"
+        "change_type": change_type,  # "rescheduled" | "removed" | "cancelled"
         "before": before,
         "after": after,
         "changed_by": changed_by,

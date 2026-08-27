@@ -108,6 +108,10 @@ class SessionUpdate(BaseModel):
     mentor_name: Optional[str] = None
 
 
+class SessionStatusIn(BaseModel):
+    status: str  # "scheduled" | "cancelled"
+
+
 class MentorIn(BaseModel):
     name: str
     email: str = ""
@@ -217,9 +221,18 @@ def conflict_message(mentor_name, conflict):
             f"Please choose a different mentor or time.")
 
 
-async def clean_sessions(query=None):
+async def clean_sessions(query=None, include_cancelled=False):
+    """The default view of "real" sessions — calendar, clashes, dashboard, SOW,
+    provisioning, and mentor workload all read through here, so excluding
+    cancelled sessions by default keeps them out of every one of those
+    consumers at once. Pass include_cancelled=True for the few places (the
+    program edit drawer, a full schedule replace) that need to see/manage
+    cancelled sessions too."""
+    q = dict(query or {})
+    if not include_cancelled:
+        q["status"] = {"$ne": "cancelled"}
     out = []
-    async for s in sessions_col.find(query or {}, {"_id": 0}):
+    async for s in sessions_col.find(q, {"_id": 0}):
         out.append(s)
     return out
 
@@ -430,7 +443,9 @@ async def get_program(program_id: str, user: CurrentUser):
     if not p:
         raise HTTPException(404, PROGRAM_NOT_FOUND)
     _assert_program_access(user, p)
-    sess = await clean_sessions({"program_id": program_id})
+    # include_cancelled: the edit drawer needs to show cancelled sessions too,
+    # so ops can see what was cancelled and restore one if it was a mistake.
+    sess = await clean_sessions({"program_id": program_id}, include_cancelled=True)
     sess.sort(key=lambda s: (s["date"], s["start_time"]))
     base = await serialize_program(p)
     return {**base, "sessions": sess}
@@ -542,7 +557,9 @@ async def replace_schedule(program_id: str, request: Request, file: Annotated[Up
     except Exception as e:
         raise HTTPException(400, f"Could not parse schedule: {e}")
 
-    existing = await clean_sessions({"program_id": program_id})
+    # include_cancelled: a full replace should clear out cancelled sessions too,
+    # not just leave them behind as orphaned records nothing else surfaces.
+    existing = await clean_sessions({"program_id": program_id}, include_cancelled=True)
     for s in existing:
         await logic.record_schedule_change(
             program_id, p.get("name", "Unknown"), s["id"], s.get("topic", ""), "removed",
@@ -655,6 +672,45 @@ async def update_session(session_id: str, body: SessionUpdate, request: Request)
             user.get("name") if user else "Unknown")
     await audit_mod.log_action(user, "Session edited", f"{s.get('topic')} · {s.get('date')}")
     return s
+
+
+@api.patch("/sessions/{session_id}/status", responses=_R403_404_409)
+async def set_session_status(session_id: str, body: SessionStatusIn, request: Request):
+    """Cancelling a session is a placeholder, not a delete — the record (and its
+    client/program/mentor context) stays put, but it drops out of the calendar,
+    SOW, and mentor-availability checks as if it never happened, and shows up
+    in its own "cancelled" notification (kept separate from the general
+    reschedule/removal one) since it's the kind of change that silently
+    changes a SOW and is easy to miss. Restoring re-checks availability in
+    case something else got booked into the freed-up slot in the meantime."""
+    user = await auth.current_user_required(request)
+    if body.status not in ("scheduled", "cancelled"):
+        raise HTTPException(400, "status must be 'scheduled' or 'cancelled'")
+    s = await sessions_col.find_one({"id": session_id}, {"_id": 0})
+    if not s:
+        raise HTTPException(404, SESSION_NOT_FOUND)
+    p = await programs_col.find_one({"id": s.get("program_id")}, {"_id": 0})
+    if p:
+        _assert_program_access(user, p)
+    if (s.get("status") or "scheduled") == body.status:
+        return s
+    if body.status == "scheduled":
+        avail = await logic.check_availability(s["mentor_name"], s["date"], s["start_time"], s["end_time"],
+                                               exclude_session_id=session_id)
+        if not avail["available"]:
+            raise HTTPException(409, conflict_message(s["mentor_name"], avail["conflicts"][0]))
+    await sessions_col.update_one({"id": session_id}, {"$set": {"status": body.status}})
+    updated = await sessions_col.find_one({"id": session_id}, {"_id": 0})
+    if body.status == "cancelled":
+        await logic.record_schedule_change(
+            s.get("program_id"), p.get("name", "Unknown") if p else "Unknown",
+            session_id, s.get("topic", ""), "cancelled",
+            {f: s.get(f) for f in _SCHEDULE_FIELDS}, None,
+            user.get("name") if user else "Unknown")
+        await audit_mod.log_action(user, "Session cancelled", f"{s.get('topic')} · {s.get('date')}")
+    else:
+        await audit_mod.log_action(user, "Session restored", f"{s.get('topic')} · {s.get('date')}")
+    return updated
 
 
 @api.delete("/sessions/{session_id}", responses=_R403_404)
@@ -1250,7 +1306,8 @@ async def _scheduled_minutes_for(program_id, date_str):
     Teams export's own reported duration, unchanged from before this existed)."""
     if not program_id or not date_str:
         return None
-    s = await sessions_col.find_one({"program_id": program_id, "date": date_str}, {"_id": 0})
+    s = await sessions_col.find_one(
+        {"program_id": program_id, "date": date_str, "status": {"$ne": "cancelled"}}, {"_id": 0})
     if not s:
         return None
     return session_hours(s) * 60

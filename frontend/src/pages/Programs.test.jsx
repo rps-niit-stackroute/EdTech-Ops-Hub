@@ -224,6 +224,86 @@ describe("Programs — Programs tab", () => {
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/sessions", expect.objectContaining({ program_id: "p1" })));
   });
 
+  test("cancelling a session calls the status endpoint and shows the cancelled badge", async () => {
+    mockDefaultApi();
+    const SESSION = { id: "s1", date: "2026-05-22", start_time: "10:00", end_time: "12:00", topic: "Intro", mentor_name: "Mentor A" };
+    api.get.mockImplementation((url) => {
+      if (url === "/programs") return Promise.resolve({ data: [PROGRAM] });
+      if (url === "/meta") return Promise.resolve({ data: { mentors: ["Mentor A"], programs: [], team_members: [] } });
+      if (url === "/programs/p1") return Promise.resolve({ data: { ...PROGRAM, sessions: [SESSION] } });
+      return Promise.reject(new Error("unexpected " + url));
+    });
+    api.patch.mockImplementation((url) => {
+      if (url === "/sessions/s1/status") return Promise.resolve({ data: { ...SESSION, status: "cancelled" } });
+      return Promise.reject(new Error("unexpected " + url));
+    });
+    const user = userEvent.setup();
+    await openProgramsTab();
+    await user.click(screen.getByTestId("edit-program-btn"));
+    const drawer = await screen.findByTestId("program-edit-drawer");
+    await waitFor(() => expect(within(drawer).getByTestId("program-name-input")).toHaveValue("Test Program"));
+
+    await user.click(within(drawer).getByTestId("cancel-session-btn"));
+    await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/sessions/s1/status", { status: "cancelled" }));
+    expect(toast.success).toHaveBeenCalledWith("Session cancelled.");
+    expect(within(drawer).getByTestId("session-cancelled-badge")).toBeInTheDocument();
+    expect(within(drawer).getByTestId("restore-session-btn")).toBeInTheDocument();
+  });
+
+  test("restoring a cancelled session calls the status endpoint", async () => {
+    mockDefaultApi();
+    const CANCELLED_SESSION = {
+      id: "s1", date: "2026-05-22", start_time: "10:00", end_time: "12:00",
+      topic: "Intro", mentor_name: "Mentor A", status: "cancelled",
+    };
+    api.get.mockImplementation((url) => {
+      if (url === "/programs") return Promise.resolve({ data: [PROGRAM] });
+      if (url === "/meta") return Promise.resolve({ data: { mentors: ["Mentor A"], programs: [], team_members: [] } });
+      if (url === "/programs/p1") return Promise.resolve({ data: { ...PROGRAM, sessions: [CANCELLED_SESSION] } });
+      return Promise.reject(new Error("unexpected " + url));
+    });
+    api.patch.mockImplementation((url) => {
+      if (url === "/sessions/s1/status") return Promise.resolve({ data: { ...CANCELLED_SESSION, status: "scheduled" } });
+      return Promise.reject(new Error("unexpected " + url));
+    });
+    const user = userEvent.setup();
+    await openProgramsTab();
+    await user.click(screen.getByTestId("edit-program-btn"));
+    const drawer = await screen.findByTestId("program-edit-drawer");
+    await waitFor(() => expect(within(drawer).getByTestId("session-cancelled-badge")).toBeInTheDocument());
+
+    await user.click(within(drawer).getByTestId("restore-session-btn"));
+    await waitFor(() => expect(api.patch).toHaveBeenCalledWith("/sessions/s1/status", { status: "scheduled" }));
+    expect(toast.success).toHaveBeenCalledWith("Session restored.");
+    expect(within(drawer).queryByTestId("session-cancelled-badge")).not.toBeInTheDocument();
+  });
+
+  test("restoring a session that's now conflicting shows the server error", async () => {
+    mockDefaultApi();
+    const CANCELLED_SESSION = {
+      id: "s1", date: "2026-05-22", start_time: "10:00", end_time: "12:00",
+      topic: "Intro", mentor_name: "Mentor A", status: "cancelled",
+    };
+    api.get.mockImplementation((url) => {
+      if (url === "/programs") return Promise.resolve({ data: [PROGRAM] });
+      if (url === "/meta") return Promise.resolve({ data: { mentors: ["Mentor A"], programs: [], team_members: [] } });
+      if (url === "/programs/p1") return Promise.resolve({ data: { ...PROGRAM, sessions: [CANCELLED_SESSION] } });
+      return Promise.reject(new Error("unexpected " + url));
+    });
+    api.patch.mockImplementation((url) => {
+      if (url === "/sessions/s1/status") return Promise.reject(apiError({ data: { detail: "Mentor A is already booked then." } }));
+      return Promise.reject(new Error("unexpected " + url));
+    });
+    const user = userEvent.setup();
+    await openProgramsTab();
+    await user.click(screen.getByTestId("edit-program-btn"));
+    const drawer = await screen.findByTestId("program-edit-drawer");
+    await waitFor(() => expect(within(drawer).getByTestId("session-cancelled-badge")).toBeInTheDocument());
+
+    await user.click(within(drawer).getByTestId("restore-session-btn"));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Mentor A is already booked then."));
+  });
+
   test("re-uploading a schedule with clean rows replaces sessions and auto-commits", async () => {
     mockDefaultApi();
     api.get.mockImplementation((url) => {

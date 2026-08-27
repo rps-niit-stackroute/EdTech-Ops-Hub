@@ -101,6 +101,51 @@ test("a removed session is described without an arrow to a new date", async () =
   expect(row).toHaveTextContent("10 Aug");
 });
 
+test("a cancelled session gets its own banner, separate from other schedule changes", async () => {
+  mockApi({
+    changes: [
+      {
+        id: "c1", program_name: "Cancelled Program", topic: "Cancelled Topic", changed_by: "Divya",
+        changed_at: new Date().toISOString(), change_type: "cancelled",
+        before: { date: "2026-08-10", start_time: "10:00", end_time: "11:00", duration: null },
+        after: null,
+      },
+      {
+        id: "c2", program_name: "Rescheduled Program", topic: "Other Topic", changed_by: "Divya",
+        changed_at: new Date().toISOString(), change_type: "rescheduled",
+        before: { date: "2026-08-10", start_time: "10:00", end_time: "11:00", duration: null },
+        after: { date: "2026-08-12", start_time: "10:00", end_time: "11:00", duration: null },
+      },
+    ],
+  });
+  render(<Dashboard />);
+
+  const cancelBanner = await screen.findByTestId("dashboard-cancellations");
+  expect(cancelBanner).toHaveTextContent("1 session cancelled in the last 7 days");
+  expect(screen.getByTestId("cancellation-row")).toHaveTextContent("Cancelled Program");
+  expect(screen.getByTestId("cancellation-row")).toHaveTextContent("Session cancelled");
+
+  const otherBanner = screen.getByTestId("dashboard-schedule-changes");
+  expect(otherBanner).toHaveTextContent("1 schedule change in the last 7 days");
+  expect(screen.getByTestId("schedule-change-row")).toHaveTextContent("Rescheduled Program");
+  // The cancellation must not also show up in the general changes list.
+  expect(otherBanner).not.toHaveTextContent("Cancelled Program");
+});
+
+test("no cancellations means no cancellation banner", async () => {
+  mockApi({
+    changes: [{
+      id: "c1", program_name: "Prog", topic: "", changed_by: "Divya", changed_at: new Date().toISOString(),
+      change_type: "rescheduled",
+      before: { date: "2026-08-10", start_time: "10:00", end_time: "11:00", duration: null },
+      after: { date: "2026-08-11", start_time: "10:00", end_time: "11:00", duration: null },
+    }],
+  });
+  render(<Dashboard />);
+  await screen.findByTestId("dashboard-schedule-changes");
+  expect(screen.queryByTestId("dashboard-cancellations")).not.toBeInTheDocument();
+});
+
 test("quick action buttons navigate to the right page", async () => {
   mockApi();
   const user = userEvent.setup();
